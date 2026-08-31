@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model attendance_users {
+  id            Int           @id @default(autoincrement())
+  username      String        @unique
+  password_hash String
+  person_type   PersonnelType
+  person_id     Int
+  is_active     Boolean       @default(true)
+  created_at    DateTime      @default(now())
+  updated_at    DateTime
+
+  @@unique([person_type, person_id])
+  @@index([person_type, person_id])
+}
+
+model attendances {
+  id          Int              @id @default(autoincrement())
+  person_type PersonnelType
+  person_id   Int
+  date        DateTime         @db.Date
+  check_in    DateTime?
+  check_out   DateTime?
+  status      AttendanceStatus @default(HADIR)
+  notes       String?
+  created_at  DateTime         @default(now())
+  updated_at  DateTime
+
+  @@unique([person_type, person_id, date])
+  @@index([date])
+  @@index([person_type, person_id])
+  @@index([status])
+}
+
+model employees {
+  id                 Int                 @id @default(autoincrement())
+  nama               String
+  nip                String              @unique
+  created_at         DateTime            @default(now())
+  updated_at         DateTime
+  jabatan            String
+  section_id         Int?
+  status             EmployeeStatus      @default(AKTIF)
+  keterangan         String?
+  pangkat_golongan   String?
+  status_kepegawaian String
+  sections           sections?           @relation(fields: [section_id], references: [id])
+  kenaikan_pangkats  kenaikan_pangkats[]
+  kgbs               kgbs[]
+
+  @@index([section_id])
+}
+
+model intern_batches {
+  id         Int       @id @default(autoincrement())
+  nama       String    @unique
+  created_at DateTime  @default(now())
+  updated_at DateTime
+  interns    interns[]
+}
+
+model interns {
+  id             Int            @id @default(autoincrement())
+  nama           String
+  jurusan        String
+  universitas    String
+  batch_id       Int
+  created_at     DateTime       @default(now())
+  updated_at     DateTime
+  intern_batches intern_batches @relation(fields: [batch_id], references: [id])
+
+  @@index([batch_id])
+}
+
+model kenaikan_pangkats {
+  id                     Int       @id @default(autoincrement())
+  employee_id            Int
+  snapshot_jabatan       String?
+  snapshot_golongan_lama String?
+  snapshot_golongan_baru String?
+  jenis_kenaikan         String
+  periode                Int
+  tmt_pangkat_baru       DateTime
+  nomor_sk               String?
+  tanggal_sk             DateTime?
+  nomor_pertek           String?
+  tanggal_pertek         DateTime?
+  masa_kerja_tahun       Int?
+  masa_kerja_bulan       Int?
+  catatan                String?
+  created_at             DateTime  @default(now())
+  updated_at             DateTime
+  employees              employees @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@index([employee_id])
+  @@index([periode])
+  @@index([tmt_pangkat_baru])
+}
+
+model kgbs {
+  id                 Int       @id @default(autoincrement())
+  employee_id        Int
+  snapshot_jabatan   String?
+  snapshot_golongan  String?
+  tmt_kgb            DateTime
+  tmt_kgb_berikutnya DateTime
+  gaji_pokok_lama    Int?
+  gaji_pokok_baru    Int
+  nomor_sk           String?
+  tanggal_sk         DateTime?
+  masa_kerja_tahun   Int?
+  masa_kerja_bulan   Int?
+  catatan            String?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime
+  employees          employees @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@index([employee_id])
+  @@index([tmt_kgb_berikutnya])
+}
+
+model non_nip_employees {
+  id                  Int      @id @default(autoincrement())
+  nama                String
+  pendidikan_terakhir String
+  universitas         String?
+  status_kepegawaian  String
+  jabatan             String?
+  keterangan          String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime
+
+  @@index([status_kepegawaian])
+}
+
+model sections {
+  id             Int         @id @default(autoincrement())
+  nama           String
+  parent_id      Int?
+  created_at     DateTime    @default(now())
+  updated_at     DateTime
+  employees      employees[]
+  sections       sections?   @relation("sectionsTosections", fields: [parent_id], references: [id])
+  other_sections sections[]  @relation("sectionsTosections")
+
+  @@unique([nama, parent_id])
+  @@index([parent_id])
+}
+
+model sessions {
+  id         String   @id
+  token_hash String   @unique
+  user_id    Int
+  expires_at DateTime
+  created_at DateTime @default(now())
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model users {
+  id            Int        @id @default(autoincrement())
+  username      String     @unique
+  password_hash String
+  nama          String
+  is_active     Boolean    @default(true)
+  last_login    DateTime?
+  created_at    DateTime   @default(now())
+  updated_at    DateTime
+  role          Role       @default(STAFF)
+  sessions      sessions[]
+}
+
+enum AttendanceStatus {
+  HADIR
+  IZIN
+  SAKIT
+  ALFA
+}
+
+enum EmployeeStatus {
+  AKTIF
+  NONAKTIF
+}
+
+enum PersonnelType {
+  MAGANG
+  TENAGA_AHLI
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
