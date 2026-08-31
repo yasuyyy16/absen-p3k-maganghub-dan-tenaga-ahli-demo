@@ -21,6 +21,7 @@ import ReminderAlert from '@/components/dashboard/ReminderAlert';
 import PostCheckoutCard from '@/components/dashboard/PostCheckoutCard';
 import LeaveStatusCard from '@/components/dashboard/LeaveStatusCard';
 import IzinSakitModal from '@/components/dashboard/IzinSakitModal';
+import AttendanceLocationCard from '@/components/dashboard/AttendanceLocationCard';
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -101,8 +102,13 @@ export default async function DashboardPage() {
   const isNotRecorded = !todayAttendance;
   const canConvertToLeave = isCheckedIn && !isCheckedOut;
 
+  const hasLocationData =
+    todayAttendance &&
+    (typeof todayAttendance.latitude === 'number' ||
+      typeof todayAttendance.latitude_out === 'number');
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* User Identity Card */}
       <UserProfileCard
         username={session.username}
@@ -117,15 +123,15 @@ export default async function DashboardPage() {
         initialTimeFormatted={timeParts.timeFormatted}
       />
 
-      {/* Late Checkout Reminder Banner (>= 17:00 WIB, Hadir, belum absen pulang) */}
+      {/* Late Checkout Reminder Banner */}
       {showReminder && <ReminderAlert />}
 
-      {/* Leave Status Card if user submitted Izin or Sakit today */}
+      {/* Leave Status Card */}
       {isLeave && (
         <LeaveStatusCard status={leaveStatus} notes={leaveNotes} />
       )}
 
-      {/* Post-Checkout Completed Confirmation State */}
+      {/* Post-Checkout Completed State */}
       {isCompleted && checkInTimeFormatted && checkOutTimeFormatted && (
         <PostCheckoutCard
           checkInTimeFormatted={checkInTimeFormatted}
@@ -134,12 +140,12 @@ export default async function DashboardPage() {
       )}
 
       {/* Today's Status Header */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex items-center justify-between shadow-xs">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-xs">
         <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 block">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
             Status Hari Ini
           </span>
-          <span className="text-sm font-medium text-slate-700">
+          <span className="text-xs sm:text-sm font-medium text-slate-700">
             {todayParts.dateString}
           </span>
         </div>
@@ -147,9 +153,9 @@ export default async function DashboardPage() {
         <AttendanceStatusBadge status={currentBadgeStatus} />
       </div>
 
-      {/* Attendance Actions: Absen Pagi & Absen Pulang */}
+      {/* Attendance Actions: Absen Pagi & Absen Pulang in 2-Column Responsive Grid */}
       {!isLeave && (
-        <>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           <AbsenPagiCard
             isCheckedIn={isCheckedIn}
             checkInTimeFormatted={checkInTimeFormatted}
@@ -163,33 +169,62 @@ export default async function DashboardPage() {
             isLeave={false}
             isCheckoutAllowed={checkoutAllowed}
           />
-        </>
+        </div>
       )}
 
-      {/* Initial Izin / Sakit Action Trigger (available when attendance is not yet recorded today) */}
+      {/* Recorded GPS Attendance Location Card */}
+      {hasLocationData && (
+        <AttendanceLocationCard
+          latitude={todayAttendance.latitude}
+          longitude={todayAttendance.longitude}
+          accuracy={todayAttendance.accuracy}
+          address={todayAttendance.address}
+          latitudeOut={todayAttendance.latitude_out}
+          longitudeOut={todayAttendance.longitude_out}
+          accuracyOut={todayAttendance.accuracy_out}
+          addressOut={todayAttendance.address_out}
+        />
+      )}
+
+      {/* Initial Izin / Sakit Action Trigger */}
       {isNotRecorded && (
         <div className="pt-1">
           <IzinSakitModal mode="CREATE" />
         </div>
       )}
 
-      {/* Controlled Status Change Trigger (available only when status is HADIR and check_out is still null) */}
+      {/* Controlled Status Change Trigger */}
       {canConvertToLeave && (
         <div className="pt-1">
           <IzinSakitModal mode="CONVERT" />
         </div>
       )}
 
-      {/* Link to Riwayat Absensi */}
-      <div className="pt-2">
+      {/* Riwayat Link Card */}
+      <div className="pt-1">
         <Link
           href="/absensi/riwayat"
-          className="w-full min-h-[44px] py-3 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 cursor-pointer shadow-xs flex items-center justify-between"
+          className="w-full bg-white border border-slate-200/80 hover:border-[#006194]/40 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-xs hover:shadow-sm transition-all group cursor-pointer"
         >
-          <span>Lihat Riwayat Absensi</span>
-          <span className="text-slate-400 font-bold" aria-hidden="true">
-            &rarr;
-          </span>
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#006194] border border-sky-100 flex items-center justify-center group-hover:bg-[#006194] group-hover:text-white transition-colors shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-[#006194] transition-colors">
+                Lihat Riwayat Absensi
+              </span>
+              <span className="text-xs text-slate-500">
+                Cek riwayat dan status kehadiran sebelumnya
+              </span>
+            </div>
+          </div>
+
+          <svg className="w-5 h-5 text-slate-400 group-hover:text-[#006194] group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
         </Link>
       </div>
     </div>

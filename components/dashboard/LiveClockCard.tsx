@@ -43,23 +43,27 @@ export default function LiveClockCard({
   }, []);
 
   return (
-    <div className="bg-slate-900 text-white border border-slate-800 rounded-xl p-5 sm:p-6 shadow-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Waktu Operasional
-          </span>
-          <p className="text-sm sm:text-base font-medium text-slate-200 mt-0.5">
-            {dateFormatted}
-          </p>
-        </div>
+    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center relative overflow-hidden">
+      {/* Background ambient accent */}
+      <div className="absolute inset-0 bg-radial-[at_top] from-sky-50/50 via-transparent to-transparent pointer-events-none" />
 
-        <div className="text-left sm:text-right">
-          <div className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-sky-400">
-            {timeFormatted}
-          </div>
-          <span className="text-[11px] text-slate-400">Zona Waktu Asia/Jakarta</span>
-        </div>
+      <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+        Waktu Operasional
+      </span>
+
+      <h1 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight text-[#006194] my-1">
+        {timeFormatted}
+      </h1>
+
+      <p className="text-sm sm:text-base font-medium text-slate-700 mt-1">
+        {dateFormatted}
+      </p>
+
+      <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/60 text-xs text-slate-600 font-medium">
+        <svg className="w-3.5 h-3.5 text-[#006194]" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        <span>Asia/Jakarta (WIB)</span>
       </div>
     </div>
   );

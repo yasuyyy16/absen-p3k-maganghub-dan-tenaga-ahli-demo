@@ -10,7 +10,7 @@ import Pagination from '@/components/history/Pagination';
 
 export const metadata: Metadata = {
   title: 'Riwayat Absensi - P3K MagangHub & Tenaga Ahli',
-  description: 'Riwayat kehadiran personal peserta MagangHub dan Tenaga Ahli unit P3K.',
+  description: 'Riwayat kehadiran personal peserta MagangHub dan Tenaga Ahli unit P3K KKP.',
 };
 
 interface RiwayatPageProps {
@@ -39,46 +39,43 @@ export default async function RiwayatPage({ searchParams }: RiwayatPageProps) {
 
   return (
     <div className="space-y-5">
-      {/* Navigation Header */}
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/absensi"
-          className="min-h-[44px] px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 flex items-center gap-1.5 shadow-2xs"
-        >
-          &larr; Kembali ke Dashboard
-        </Link>
+      {/* Header & Controls Area */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Riwayat Absensi
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Kelola dan pantau catatan kehadiran Anda pada bulan{' '}
+            <strong className="text-slate-800 font-semibold">{monthFormatted}</strong>.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+          <Link
+            href="/absensi"
+            className="min-h-[44px] px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap"
+          >
+            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+            <span>Dashboard</span>
+          </Link>
+
+          <MonthFilter currentMonth={historyData.selectedMonth} />
+        </div>
       </div>
 
-      {/* Page Title Card */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-xs">
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-          Riwayat Absensi
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-600 mt-1">
-          Catatan kehadiran personal untuk akun <strong className="font-semibold text-slate-800">{session.nama}</strong> (@{session.username}).
-        </p>
-      </div>
-
-      {/* Month Filter Selector */}
-      <MonthFilter currentMonth={historyData.selectedMonth} />
-
-      {/* Summary Badge */}
-      <div className="flex items-center justify-between text-xs sm:text-sm px-1 text-slate-600">
-        <span>
-          Menampilkan <strong className="font-bold text-slate-900">{historyData.totalCount}</strong> data presensi pada{' '}
-          <strong className="font-bold text-slate-900">{monthFormatted}</strong>
-        </span>
-      </div>
-
-      {/* History Table / Card List */}
+      {/* History Table / Mobile Cards */}
       <HistoryTable items={historyData.items} />
 
-      {/* Server-Side Pagination Controls */}
+      {/* Pagination */}
       {historyData.totalCount > 0 && (
         <Pagination
           month={historyData.selectedMonth}
           currentPage={historyData.page}
           totalPages={historyData.totalPages}
+          totalCount={historyData.totalCount}
         />
       )}
     </div>

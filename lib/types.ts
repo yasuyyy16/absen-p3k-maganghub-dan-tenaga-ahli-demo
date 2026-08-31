@@ -56,6 +56,12 @@ export interface WibTimeParts {
   timeFormatted: string; // 'HH:mm WIB'
 }
 
+export interface LocationPayload {
+  latitude: number;
+  longitude: number;
+  accuracy?: number | null;
+}
+
 export type AttendanceTodayState =
   | {
       type: 'NOT_RECORDED';
@@ -66,6 +72,10 @@ export type AttendanceTodayState =
       checkInFormatted: string;
       canCheckout: boolean;
       isReminderActive: boolean;
+      latitude?: number | null;
+      longitude?: number | null;
+      accuracy?: number | null;
+      address?: string | null;
     }
   | {
       type: 'COMPLETED';
@@ -73,6 +83,14 @@ export type AttendanceTodayState =
       checkOutTime: Date;
       checkInFormatted: string;
       checkOutFormatted: string;
+      latitude?: number | null;
+      longitude?: number | null;
+      accuracy?: number | null;
+      address?: string | null;
+      latitude_out?: number | null;
+      longitude_out?: number | null;
+      accuracy_out?: number | null;
+      address_out?: string | null;
     }
   | {
       type: 'LEAVE';
@@ -88,6 +106,14 @@ export interface AttendanceHistoryItem {
   checkOutFormatted: string | null;
   status: AttendanceStatus;
   notes: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
+  address: string | null;
+  latitude_out: number | null;
+  longitude_out: number | null;
+  accuracy_out: number | null;
+  address_out: string | null;
 }
 
 export interface AttendanceHistoryResult {

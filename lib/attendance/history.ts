@@ -64,6 +64,14 @@ export async function getAttendanceHistory(
     checkOutFormatted: rec.check_out ? formatWibTime(rec.check_out) : null,
     status: rec.status,
     notes: rec.notes,
+    latitude: rec.latitude,
+    longitude: rec.longitude,
+    accuracy: rec.accuracy,
+    address: rec.address,
+    latitude_out: rec.latitude_out,
+    longitude_out: rec.longitude_out,
+    accuracy_out: rec.accuracy_out,
+    address_out: rec.address_out,
   }));
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));

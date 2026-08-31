@@ -23,7 +23,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
   const buttonLabel = isConvert ? 'Ubah Status ke Izin / Sakit' : 'Pengajuan Izin / Sakit';
   const statusLabel = status === 'IZIN' ? 'IZIN' : 'SAKIT';
 
-  // Handle Escape key navigation (Anti-Slop R-32 / Accessibility)
+  // Handle Escape key navigation (Accessibility)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !isPending) {
@@ -52,10 +52,8 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
     setErrorMsg(null);
 
     if (isConvert) {
-      // In CONVERT mode, do NOT call server action immediately. Show confirmation dialog.
       setShowConfirm(true);
     } else {
-      // In CREATE mode, proceed directly with server action
       const formData = new FormData();
       formData.append('status', status);
       formData.append('notes', notes);
@@ -102,14 +100,17 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
           setShowConfirm(false);
           setIsOpen(true);
         }}
-        className="w-full min-h-[44px] py-2.5 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 cursor-pointer shadow-xs flex items-center justify-center"
+        className="w-full min-h-[44px] py-2.5 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-xs sm:text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer shadow-xs flex items-center justify-center gap-2"
       >
+        <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+        </svg>
         <span>{buttonLabel}</span>
       </button>
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-xs pb-safe transition-opacity duration-200"
           role="dialog"
           aria-modal="true"
           aria-labelledby={showConfirm ? 'confirm-modal-title' : 'modal-title'}
@@ -124,17 +125,20 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
           }}
         >
           {!showConfirm ? (
-            /* Step 1: Input Status and Notes Dialog */
-            <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            /* Step 1: Input Status and Notes Dialog / Bottom Sheet */
+            <div className="bg-white border-t sm:border border-slate-200 rounded-t-3xl sm:rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200">
+              {/* Drag Handle (Mobile only) */}
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto sm:hidden" aria-hidden="true" />
+
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h2 id="modal-title" className="text-lg font-bold text-slate-900">
+                <h2 id="modal-title" className="text-base sm:text-lg font-bold text-slate-900">
                   {modalTitle}
                 </h2>
                 <button
                   type="button"
                   onClick={() => !isPending && setIsOpen(false)}
                   disabled={isPending}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 cursor-pointer"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer"
                   aria-label="Tutup modal"
                 >
                   ✕
@@ -142,7 +146,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
               </div>
 
               {isConvert && (
-                <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/80 text-amber-900 text-xs font-medium leading-relaxed">
+                <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 text-xs font-medium leading-relaxed">
                   Perhatian: Mengubah status akan membatalkan Absen Pagi hari ini dan mencatat kehadiran Anda sebagai Izin atau Sakit.
                 </div>
               )}
@@ -151,7 +155,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                 <div
                   role="alert"
                   aria-live="polite"
-                  className="p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm font-medium"
+                  className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-xs sm:text-sm font-medium"
                 >
                   {errorMsg}
                 </div>
@@ -163,30 +167,12 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                     Jenis Ketidakhadiran
                   </label>
                   <div className="grid grid-cols-2 gap-3">
+                    {/* Sakit Option */}
                     <label
-                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-semibold text-sm cursor-pointer transition-colors ${
-                        status === 'IZIN'
-                          ? 'border-sky-600 bg-sky-50 text-sky-900 ring-1 ring-sky-600'
-                          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="leaveType"
-                        value="IZIN"
-                        checked={status === 'IZIN'}
-                        onChange={() => setStatus('IZIN')}
-                        disabled={isPending}
-                        className="sr-only"
-                      />
-                      <span>Izin</span>
-                    </label>
-
-                    <label
-                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-semibold text-sm cursor-pointer transition-colors ${
+                      className={`relative flex flex-col items-center justify-center p-3.5 rounded-xl border cursor-pointer transition-all ${
                         status === 'SAKIT'
-                          ? 'border-purple-600 bg-purple-50 text-purple-900 ring-1 ring-purple-600'
-                          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                          ? 'border-purple-600 bg-purple-50 text-purple-950 ring-2 ring-purple-600/30'
+                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       <input
@@ -198,7 +184,33 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                         disabled={isPending}
                         className="sr-only"
                       />
-                      <span>Sakit</span>
+                      <svg className={`w-6 h-6 mb-1 ${status === 'SAKIT' ? 'text-purple-700' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                      <span className="font-semibold text-xs sm:text-sm">Sakit</span>
+                    </label>
+
+                    {/* Izin Option */}
+                    <label
+                      className={`relative flex flex-col items-center justify-center p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        status === 'IZIN'
+                          ? 'border-[#006194] bg-sky-50 text-[#001d31] ring-2 ring-[#006194]/30'
+                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="leaveType"
+                        value="IZIN"
+                        checked={status === 'IZIN'}
+                        onChange={() => setStatus('IZIN')}
+                        disabled={isPending}
+                        className="sr-only"
+                      />
+                      <svg className={`w-6 h-6 mb-1 ${status === 'IZIN' ? 'text-[#006194]' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                      </svg>
+                      <span className="font-semibold text-xs sm:text-sm">Izin</span>
                     </label>
                   </div>
                 </div>
@@ -223,8 +235,8 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isPending}
-                    placeholder="Tuliskan alasan atau keterangan ketidakhadiran..."
-                    className="w-full p-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:border-sky-600 focus:ring-1 focus:ring-sky-600 disabled:opacity-60 transition-colors resize-none"
+                    placeholder="Tuliskan alasan pengajuan izin atau sakit..."
+                    className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50/50 text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all resize-none outline-none"
                   />
                 </div>
 
@@ -233,71 +245,82 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                     type="button"
                     onClick={() => setIsOpen(false)}
                     disabled={isPending}
-                    className="min-h-[44px] px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 cursor-pointer disabled:opacity-60"
+                    className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-60"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
                     disabled={isPending}
-                    className="min-h-[44px] px-5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 cursor-pointer disabled:opacity-60 shadow-xs"
+                    className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004e77] text-white font-semibold text-xs sm:text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-60 shadow-xs flex items-center justify-center gap-1.5"
                   >
-                    {isPending
-                      ? 'Memproses...'
-                      : isConvert
-                      ? 'Lanjutkan Perubahan'
-                      : 'Kirim Pengajuan'}
+                    <span>
+                      {isPending
+                        ? 'Memproses...'
+                        : isConvert
+                        ? 'Lanjutkan'
+                        : 'Ajukan'}
+                    </span>
                   </button>
                 </div>
               </form>
             </div>
           ) : (
             /* Step 2: Explicit Confirmation Dialog for CONVERT mode */
-            <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
-              <div className="border-b border-slate-100 pb-3">
+            <div className="bg-white border-t sm:border border-slate-200 rounded-t-3xl sm:rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200">
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto sm:hidden" aria-hidden="true" />
+
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm shrink-0">
+                  !
+                </div>
                 <h2
                   id="confirm-modal-title"
-                  className="text-lg font-bold text-slate-900"
+                  className="text-base sm:text-lg font-bold text-slate-900"
                 >
                   Konfirmasi Perubahan Status
                 </h2>
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm text-slate-800 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
                   Anda akan mengubah status presensi hari ini dari{' '}
-                  <strong className="font-bold text-slate-900">HADIR</strong>{' '}
+                  <span className="font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded">
+                    HADIR
+                  </span>{' '}
                   menjadi{' '}
-                  <strong
-                    className={`font-bold ${
-                      status === 'IZIN' ? 'text-sky-700' : 'text-purple-700'
+                  <span
+                    className={`font-bold px-1.5 py-0.5 rounded ${
+                      status === 'IZIN'
+                        ? 'bg-sky-100 text-[#006194]'
+                        : 'bg-purple-100 text-purple-700'
                     }`}
                   >
                     {statusLabel}
-                  </strong>
+                  </span>
                   .
                 </p>
 
                 <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 text-xs font-semibold leading-relaxed">
-                  Perubahan ini akan membatalkan Absen Pagi hari ini.
+                  Perhatian: Perubahan ini akan membatalkan Absen Pagi hari ini.
                 </div>
 
                 {notes.trim().length > 0 && (
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-700">
-                    <span className="font-semibold block text-slate-500 mb-0.5">
-                      Keterangan:
+                  <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-3 text-xs text-slate-700">
+                    <span className="font-semibold block text-slate-500 mb-0.5 uppercase tracking-wider text-[10px]">
+                      Keterangan Tambahan:
                     </span>
-                    <span className="italic break-words">{notes}</span>
+                    <p className="italic text-slate-800 break-words">{notes}</p>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowConfirm(false)}
                   disabled={isPending}
-                  className="min-h-[44px] px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 cursor-pointer disabled:opacity-60"
+                  className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-60"
                 >
                   Kembali
                 </button>
@@ -305,9 +328,9 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                   type="button"
                   onClick={handleConfirmConvert}
                   disabled={isPending}
-                  className="min-h-[44px] px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 cursor-pointer disabled:opacity-60 shadow-xs"
+                  className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs sm:text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 cursor-pointer disabled:opacity-60 shadow-xs flex items-center justify-center gap-1.5"
                 >
-                  {isPending ? 'Mengubah Status...' : 'Ya, Ubah Status'}
+                  <span>{isPending ? 'Mengubah...' : 'Ya, Ubah Status'}</span>
                 </button>
               </div>
             </div>

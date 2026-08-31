@@ -10,6 +10,8 @@ import {
   formatWibTime,
   isCheckoutAllowed,
 } from '@/lib/time';
+import { LocationPayload } from '@/lib/types';
+import { isValidCoordinates, reverseGeocode } from '@/lib/location';
 
 export interface AttendanceActionResult {
   success: boolean;
@@ -19,14 +21,24 @@ export interface AttendanceActionResult {
 }
 
 /**
- * Server Action to record Absen Pagi (Check-in) for the authenticated user.
+ * Server Action to record Absen Pagi (Check-in) with GPS coordinates for the authenticated user.
  */
-export async function absenPagiAction(): Promise<AttendanceActionResult> {
+export async function absenPagiAction(
+  location?: LocationPayload
+): Promise<AttendanceActionResult> {
   const session = await getSession();
   if (!session) {
     return {
       success: false,
       message: 'Sesi login telah berakhir. Silakan login kembali.',
+    };
+  }
+
+  // Validate GPS coordinates from client
+  if (!location || !isValidCoordinates(location.latitude, location.longitude)) {
+    return {
+      success: false,
+      message: 'Lokasi GPS diperlukan untuk melakukan absen pagi. Pastikan izin lokasi diaktifkan pada browser.',
     };
   }
 
@@ -52,6 +64,9 @@ export async function absenPagiAction(): Promise<AttendanceActionResult> {
       };
     }
 
+    // Reverse geocode to get human-readable address (graceful fallback to null)
+    const address = await reverseGeocode(location.latitude, location.longitude);
+
     const newRecord = await prisma.attendances.create({
       data: {
         person_type: session.personType,
@@ -59,11 +74,16 @@ export async function absenPagiAction(): Promise<AttendanceActionResult> {
         date: today.dateObj,
         check_in: now,
         status: 'HADIR',
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy ?? null,
+        address: address,
         updated_at: now,
       },
     });
 
     revalidatePath('/absensi');
+    revalidatePath('/absensi/riwayat');
 
     return {
       success: true,
@@ -90,14 +110,24 @@ export async function absenPagiAction(): Promise<AttendanceActionResult> {
 }
 
 /**
- * Server Action to record Absen Pulang (Check-out) for the authenticated user.
+ * Server Action to record Absen Pulang (Check-out) with GPS coordinates for the authenticated user.
  */
-export async function absenPulangAction(): Promise<AttendanceActionResult> {
+export async function absenPulangAction(
+  location?: LocationPayload
+): Promise<AttendanceActionResult> {
   const session = await getSession();
   if (!session) {
     return {
       success: false,
       message: 'Sesi login telah berakhir. Silakan login kembali.',
+    };
+  }
+
+  // Validate GPS coordinates from client
+  if (!location || !isValidCoordinates(location.latitude, location.longitude)) {
+    return {
+      success: false,
+      message: 'Lokasi GPS diperlukan untuk melakukan absen pulang. Pastikan izin lokasi diaktifkan pada browser.',
     };
   }
 
@@ -138,17 +168,25 @@ export async function absenPulangAction(): Promise<AttendanceActionResult> {
       };
     }
 
+    // Reverse geocode checkout location
+    const addressOut = await reverseGeocode(location.latitude, location.longitude);
+
     const updated = await prisma.attendances.update({
       where: {
         id: existing.id,
       },
       data: {
         check_out: now,
+        latitude_out: location.latitude,
+        longitude_out: location.longitude,
+        accuracy_out: location.accuracy ?? null,
+        address_out: addressOut,
         updated_at: now,
       },
     });
 
     revalidatePath('/absensi');
+    revalidatePath('/absensi/riwayat');
 
     return {
       success: true,
@@ -235,6 +273,7 @@ export async function submitIzinSakitAction(
     });
 
     revalidatePath('/absensi');
+    revalidatePath('/absensi/riwayat');
 
     return {
       success: true,
@@ -262,7 +301,7 @@ export async function submitIzinSakitAction(
 /**
  * Server Action to convert an existing today's 'HADIR' attendance record to 'IZIN' or 'SAKIT'.
  * Only permitted when today's record exists, status === 'HADIR', and check_out === null.
- * Clears check_in and check_out, updates status, saves validated notes, and updates updated_at.
+ * Clears check_in, check_out, location coordinates, updates status, saves validated notes, and updates updated_at.
  */
 export async function ubahKeIzinSakitAction(
   formData: FormData
@@ -325,7 +364,7 @@ export async function ubahKeIzinSakitAction(
       };
     }
 
-    // Convert record to IZIN / SAKIT, clearing check_in and check_out
+    // Convert record to IZIN / SAKIT, clearing check_in, check_out, and location data
     await prisma.attendances.update({
       where: {
         id: existing.id,
@@ -335,11 +374,20 @@ export async function ubahKeIzinSakitAction(
         notes: notes,
         check_in: null,
         check_out: null,
+        latitude: null,
+        longitude: null,
+        accuracy: null,
+        address: null,
+        latitude_out: null,
+        longitude_out: null,
+        accuracy_out: null,
+        address_out: null,
         updated_at: now,
       },
     });
 
     revalidatePath('/absensi');
+    revalidatePath('/absensi/riwayat');
 
     return {
       success: true,

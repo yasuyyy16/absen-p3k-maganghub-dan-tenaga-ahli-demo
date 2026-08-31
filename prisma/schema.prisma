@@ -22,16 +22,24 @@ model attendance_users {
 }
 
 model attendances {
-  id          Int              @id @default(autoincrement())
-  person_type PersonnelType
-  person_id   Int
-  date        DateTime         @db.Date
-  check_in    DateTime?
-  check_out   DateTime?
-  status      AttendanceStatus @default(HADIR)
-  notes       String?
-  created_at  DateTime         @default(now())
-  updated_at  DateTime
+  id            Int              @id @default(autoincrement())
+  person_type   PersonnelType
+  person_id     Int
+  date          DateTime         @db.Date
+  check_in      DateTime?
+  check_out     DateTime?
+  status        AttendanceStatus @default(HADIR)
+  notes         String?
+  latitude      Float?
+  longitude     Float?
+  accuracy      Float?
+  address       String?
+  latitude_out  Float?
+  longitude_out Float?
+  accuracy_out  Float?
+  address_out   String?
+  created_at    DateTime         @default(now())
+  updated_at    DateTime
 
   @@unique([person_type, person_id, date])
   @@index([date])
