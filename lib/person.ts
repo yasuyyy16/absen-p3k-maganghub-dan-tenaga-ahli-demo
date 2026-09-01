@@ -3,14 +3,76 @@ import { PersonnelType } from '@prisma/client';
 import { PersonDetails } from './types';
 
 /**
- * Resolves person details polymorphically based on personType and personId.
- * - MAGANG: queries `interns` table (joined with `intern_batches`)
- * - TENAGA_AHLI: queries `non_nip_employees` table and verifies status_kepegawaian = "Tenaga Ahli"
+ * Resolves user profile details directly from the shared `users` table by user ID.
+ * Returns null if user is not found or inactive.
+ */
+export async function resolveUserProfile(userId: number): Promise<PersonDetails | null> {
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      username: true,
+      nama: true,
+      role: true,
+      jenis_personel: true,
+      universitas: true,
+      is_active: true,
+    },
+  });
+
+  if (!user || !user.is_active) {
+    return null;
+  }
+
+  const isTenagaAhli = user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli';
+  const personType: PersonnelType = isTenagaAhli ? 'TENAGA_AHLI' : 'MAGANG';
+
+  return {
+    id: user.id,
+    username: user.username,
+    nama: user.nama,
+    role: user.role,
+    jenisPersonel: user.jenis_personel,
+    universitas: user.universitas,
+    isActive: user.is_active,
+    personType,
+    detail: {
+      universitas: user.universitas ?? undefined,
+    },
+  };
+}
+
+/**
+ * Flexible person resolution supporting:
+ * 1. resolvePerson(userId: number) -> direct `users` table lookup
+ * 2. resolvePerson(personType: PersonnelType, personId: number) -> tries `users` first, then legacy `interns`/`non_nip_employees`
  */
 export async function resolvePerson(
-  personType: PersonnelType,
-  personId: number
+  personTypeOrUserId: PersonnelType | number,
+  optionalPersonId?: number
 ): Promise<PersonDetails | null> {
+  // Overload 1: called with userId (number)
+  if (typeof personTypeOrUserId === 'number') {
+    return resolveUserProfile(personTypeOrUserId);
+  }
+
+  const personType = personTypeOrUserId;
+  const personId = optionalPersonId;
+
+  if (!personId) {
+    return null;
+  }
+
+  // 1. Try finding in `users` table first (single-user architecture)
+  const user = await prisma.users.findUnique({
+    where: { id: personId },
+  });
+
+  if (user && user.is_active) {
+    return resolveUserProfile(user.id);
+  }
+
+  // 2. Legacy fallback for historical data referencing interns or non_nip_employees
   if (personType === 'MAGANG') {
     const intern = await prisma.interns.findUnique({
       where: { id: personId },
@@ -25,8 +87,14 @@ export async function resolvePerson(
 
     return {
       id: intern.id,
+      username: intern.nama.toLowerCase().replace(/\s+/g, ''),
       nama: intern.nama,
+      role: 'VIEWER',
       personType: 'MAGANG',
+      jenisPersonel: 'MagangHub',
+      universitas: intern.universitas,
+      jurusan: intern.jurusan,
+      isActive: true,
       detail: {
         jurusan: intern.jurusan,
         universitas: intern.universitas,
@@ -45,15 +113,15 @@ export async function resolvePerson(
       return null;
     }
 
-    // Tenaga Ahli must have status_kepegawaian matching "Tenaga Ahli"
-    if (nonNip.status_kepegawaian?.trim().toLowerCase() !== 'tenaga ahli') {
-      return null;
-    }
-
     return {
       id: nonNip.id,
+      username: nonNip.nama.toLowerCase().replace(/\s+/g, ''),
       nama: nonNip.nama,
+      role: 'VIEWER',
       personType: 'TENAGA_AHLI',
+      jenisPersonel: 'Tenaga Ahli',
+      universitas: nonNip.universitas,
+      isActive: true,
       detail: {
         statusKepegawaian: nonNip.status_kepegawaian,
         jabatan: nonNip.jabatan,

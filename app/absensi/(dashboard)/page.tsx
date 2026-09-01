@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
-import { resolvePerson } from '@/lib/person';
 import { prisma } from '@/lib/prisma';
 import {
   getNowWib,
@@ -9,9 +8,9 @@ import {
   getWibTimeParts,
   formatWibDateLong,
   formatWibTime,
-  isCheckoutAllowed,
   isReminderActive,
 } from '@/lib/time';
+import { PersonDetails, PersonnelType } from '@/lib/types';
 import UserProfileCard from '@/components/dashboard/UserProfileCard';
 import LiveClockCard from '@/components/dashboard/LiveClockCard';
 import AttendanceStatusBadge from '@/components/dashboard/AttendanceStatusBadge';
@@ -30,11 +29,28 @@ export default async function DashboardPage() {
     redirect('/absensi/login');
   }
 
-  // Resolve latest profile details from database
-  const personDetails = await resolvePerson(
-    session.personType,
-    session.personId
-  );
+  // Fetch current user details from shared `users` table
+  const user = await prisma.users.findUnique({
+    where: { id: session.userId },
+  });
+
+  if (!user || !user.is_active) {
+    redirect('/absensi/login');
+  }
+
+  const isTenagaAhli = user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli';
+  const personType: PersonnelType = isTenagaAhli ? 'TENAGA_AHLI' : 'MAGANG';
+
+  const personDetails: PersonDetails = {
+    id: user.id,
+    username: user.username,
+    nama: user.nama,
+    role: user.role,
+    jenisPersonel: user.jenis_personel,
+    universitas: user.universitas,
+    isActive: user.is_active,
+    personType,
+  };
 
   // Time & Today's Calendar Date in Asia/Jakarta timezone
   const now = getNowWib();
@@ -42,19 +58,16 @@ export default async function DashboardPage() {
   const timeParts = getWibTimeParts(now);
   const dateFormattedLong = formatWibDateLong(now);
 
-  // Query today's attendance record using polymorphic compound key
-  const todayAttendance = await prisma.attendances.findUnique({
+  // Query today's attendance record using user.id
+  const todayAttendance = await prisma.attendances.findFirst({
     where: {
-      person_type_person_id_date: {
-        person_type: session.personType,
-        person_id: session.personId,
-        date: todayParts.dateObj,
-      },
+      person_id: user.id,
+      date: todayParts.dateObj,
     },
   });
 
   // Determine current attendance state
-  let currentBadgeStatus: 'BELUM_ABSEN' | 'SUDAH_PAGI' | 'SUDAH_PULANG' | 'IZIN' | 'SAKIT' | 'ALFA' = 'BELUM_ABSEN';
+  let currentBadgeStatus: 'BELUM_ABSEN' | 'SUDAH_PAGI' | 'LENGKAP' | 'IZIN' | 'SAKIT' | 'ALFA' = 'BELUM_ABSEN';
   let isCheckedIn = false;
   let isCheckedOut = false;
   let isLeave = false;
@@ -70,7 +83,7 @@ export default async function DashboardPage() {
         isCheckedIn = true;
         checkInTimeFormatted = formatWibTime(todayAttendance.check_in);
       } else if (todayAttendance.check_in && todayAttendance.check_out) {
-        currentBadgeStatus = 'SUDAH_PULANG';
+        currentBadgeStatus = 'LENGKAP';
         isCheckedIn = true;
         isCheckedOut = true;
         checkInTimeFormatted = formatWibTime(todayAttendance.check_in);
@@ -91,7 +104,6 @@ export default async function DashboardPage() {
     }
   }
 
-  const checkoutAllowed = isCheckoutAllowed(now);
   const showReminder = isReminderActive(
     now,
     isCheckedIn,
@@ -107,15 +119,55 @@ export default async function DashboardPage() {
     (typeof todayAttendance.latitude === 'number' ||
       typeof todayAttendance.latitude_out === 'number');
 
+  // Check if user profile is incomplete
+  const isProfileIncomplete =
+    !user.nama ||
+    user.nama.trim().length === 0 ||
+    user.nama.trim() === user.username ||
+    !user.jenis_personel ||
+    (user.jenis_personel === 'Magang Biasa' &&
+      (!user.universitas || user.universitas.trim().length === 0));
+
   return (
-    <div className="space-y-4 sm:space-y-5">
-      {/* User Identity Card */}
+    <div className="space-y-5 sm:space-y-6">
+      {/* Participant Profile Card */}
       <UserProfileCard
-        username={session.username}
-        nama={personDetails?.nama ?? session.nama}
-        personType={session.personType}
+        username={user.username}
+        nama={user.nama}
+        personType={personType}
         personDetails={personDetails}
       />
+
+      {/* Incomplete Profile Reminder Banner */}
+      {isProfileIncomplete && (
+        <div
+          role="alert"
+          className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex items-start justify-between gap-3.5 shadow-xs text-amber-950"
+        >
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div
+              className="w-7 h-7 rounded-full bg-amber-200/80 text-amber-900 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
+              aria-hidden="true"
+            >
+              !
+            </div>
+            <div className="space-y-0.5 flex-1 min-w-0">
+              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-900">
+                Profil Belum Lengkap
+              </h3>
+              <p className="text-xs text-amber-800 font-medium">
+                Silakan lengkapi Nama Lengkap, Jenis Personel, dan Universitas Anda di menu Pengaturan Profil agar data presensi tercatat akurat.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/absensi/profil"
+            className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+          >
+            Lengkapi Profil
+          </Link>
+        </div>
+      )}
 
       {/* Live Operational WIB Clock */}
       <LiveClockCard
@@ -167,7 +219,6 @@ export default async function DashboardPage() {
             isCheckedOut={isCheckedOut}
             checkOutTimeFormatted={checkOutTimeFormatted}
             isLeave={false}
-            isCheckoutAllowed={checkoutAllowed}
           />
         </div>
       )}

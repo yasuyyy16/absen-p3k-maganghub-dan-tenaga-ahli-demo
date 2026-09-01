@@ -8,9 +8,8 @@ import {
   getNowWib,
   getWibDateParts,
   formatWibTime,
-  isCheckoutAllowed,
 } from '@/lib/time';
-import { LocationPayload } from '@/lib/types';
+import { LocationPayload, PersonnelType } from '@/lib/types';
 import { isValidCoordinates, reverseGeocode } from '@/lib/location';
 
 export interface AttendanceActionResult {
@@ -42,18 +41,30 @@ export async function absenPagiAction(
     };
   }
 
+  // Fetch authenticated user to ensure active status and derive personType
+  const user = await prisma.users.findUnique({
+    where: { id: session.userId },
+  });
+
+  if (!user || !user.is_active) {
+    return {
+      success: false,
+      message: 'Sesi login tidak valid atau akun dinonaktifkan.',
+    };
+  }
+
+  const isTenagaAhli = user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli';
+  const personType: PersonnelType = isTenagaAhli ? 'TENAGA_AHLI' : 'MAGANG';
+
   const now = getNowWib();
   const today = getWibDateParts(now);
 
   try {
-    // Check if attendance already exists today for this person
-    const existing = await prisma.attendances.findUnique({
+    // Check if attendance already exists today for this user
+    const existing = await prisma.attendances.findFirst({
       where: {
-        person_type_person_id_date: {
-          person_type: session.personType,
-          person_id: session.personId,
-          date: today.dateObj,
-        },
+        person_id: user.id,
+        date: today.dateObj,
       },
     });
 
@@ -69,8 +80,8 @@ export async function absenPagiAction(
 
     const newRecord = await prisma.attendances.create({
       data: {
-        person_type: session.personType,
-        person_id: session.personId,
+        person_type: personType,
+        person_id: user.id,
         date: today.dateObj,
         check_in: now,
         status: 'HADIR',
@@ -131,26 +142,27 @@ export async function absenPulangAction(
     };
   }
 
-  const now = getNowWib();
-  const today = getWibDateParts(now);
+  // Verify active user
+  const user = await prisma.users.findUnique({
+    where: { id: session.userId },
+  });
 
-  // Server-side validation: must be >= 16:00 WIB
-  if (!isCheckoutAllowed(now)) {
+  if (!user || !user.is_active) {
     return {
       success: false,
-      message: 'Absen pulang hanya dapat dilakukan mulai pukul 16:00 WIB.',
+      message: 'Sesi login tidak valid atau akun dinonaktifkan.',
     };
   }
 
+  const now = getNowWib();
+  const today = getWibDateParts(now);
+
   try {
-    // Find today's attendance record
-    const existing = await prisma.attendances.findUnique({
+    // Find today's attendance record for this user
+    const existing = await prisma.attendances.findFirst({
       where: {
-        person_type_person_id_date: {
-          person_type: session.personType,
-          person_id: session.personId,
-          date: today.dateObj,
-        },
+        person_id: user.id,
+        date: today.dateObj,
       },
     });
 
@@ -236,19 +248,30 @@ export async function submitIzinSakitAction(
     };
   }
 
+  const user = await prisma.users.findUnique({
+    where: { id: session.userId },
+  });
+
+  if (!user || !user.is_active) {
+    return {
+      success: false,
+      message: 'Sesi login tidak valid atau akun dinonaktifkan.',
+    };
+  }
+
+  const isTenagaAhli = user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli';
+  const personType: PersonnelType = isTenagaAhli ? 'TENAGA_AHLI' : 'MAGANG';
+
   const notes = rawNotes && rawNotes.length > 0 ? rawNotes : null;
   const now = getNowWib();
   const today = getWibDateParts(now);
 
   try {
-    // Check if attendance already exists today for this person
-    const existing = await prisma.attendances.findUnique({
+    // Check if attendance already exists today for this user
+    const existing = await prisma.attendances.findFirst({
       where: {
-        person_type_person_id_date: {
-          person_type: session.personType,
-          person_id: session.personId,
-          date: today.dateObj,
-        },
+        person_id: user.id,
+        date: today.dateObj,
       },
     });
 
@@ -261,8 +284,8 @@ export async function submitIzinSakitAction(
 
     await prisma.attendances.create({
       data: {
-        person_type: session.personType,
-        person_id: session.personId,
+        person_type: personType,
+        person_id: user.id,
         date: today.dateObj,
         status: rawStatus,
         notes: notes,
@@ -301,7 +324,6 @@ export async function submitIzinSakitAction(
 /**
  * Server Action to convert an existing today's 'HADIR' attendance record to 'IZIN' or 'SAKIT'.
  * Only permitted when today's record exists, status === 'HADIR', and check_out === null.
- * Clears check_in, check_out, location coordinates, updates status, saves validated notes, and updates updated_at.
  */
 export async function ubahKeIzinSakitAction(
   formData: FormData
@@ -333,19 +355,27 @@ export async function ubahKeIzinSakitAction(
     };
   }
 
+  const user = await prisma.users.findUnique({
+    where: { id: session.userId },
+  });
+
+  if (!user || !user.is_active) {
+    return {
+      success: false,
+      message: 'Sesi login tidak valid atau akun dinonaktifkan.',
+    };
+  }
+
   const notes = rawNotes && rawNotes.length > 0 ? rawNotes : null;
   const now = getNowWib();
   const today = getWibDateParts(now);
 
   try {
     // Find today's attendance record
-    const existing = await prisma.attendances.findUnique({
+    const existing = await prisma.attendances.findFirst({
       where: {
-        person_type_person_id_date: {
-          person_type: session.personType,
-          person_id: session.personId,
-          date: today.dateObj,
-        },
+        person_id: user.id,
+        date: today.dateObj,
       },
     });
 

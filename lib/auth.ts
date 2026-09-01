@@ -28,9 +28,10 @@ export async function signSessionToken(payload: SessionPayload): Promise<string>
   return new SignJWT({
     userId: payload.userId,
     username: payload.username,
-    personId: payload.personId,
-    personType: payload.personType,
     nama: payload.nama,
+    role: payload.role,
+    personId: payload.personId ?? payload.userId,
+    personType: payload.personType ?? 'MAGANG',
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -51,16 +52,20 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
     if (
       typeof payload.userId === 'number' &&
       typeof payload.username === 'string' &&
-      typeof payload.personId === 'number' &&
-      (payload.personType === 'MAGANG' || payload.personType === 'TENAGA_AHLI') &&
-      typeof payload.nama === 'string'
+      typeof payload.nama === 'string' &&
+      payload.role === 'VIEWER'
     ) {
       return {
         userId: payload.userId,
         username: payload.username,
-        personId: payload.personId,
-        personType: payload.personType,
         nama: payload.nama,
+        role: 'VIEWER',
+        personId:
+          typeof payload.personId === 'number'
+            ? payload.personId
+            : payload.userId,
+        personType:
+          payload.personType === 'TENAGA_AHLI' ? 'TENAGA_AHLI' : 'MAGANG',
       };
     }
     return null;

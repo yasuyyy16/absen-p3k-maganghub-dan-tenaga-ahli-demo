@@ -10,6 +10,9 @@ export interface AdminAttendanceReportItem {
   nama: string;
   username: string;
   personType: PersonnelType;
+  jenisPersonel?: string | null;
+  universitas?: string | null;
+  jurusan?: string | null;
   dateFormatted: string;
   checkInFormatted: string | null;
   checkOutFormatted: string | null;
@@ -52,19 +55,23 @@ export default function AdminAttendanceReport({
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                <th className="py-3.5 px-4 w-12 text-center">No</th>
-                <th className="py-3.5 px-4">Nama</th>
-                <th className="py-3.5 px-4">Jenis Personel</th>
-                <th className="py-3.5 px-4">Tanggal</th>
-                <th className="py-3.5 px-4">Jam Masuk</th>
-                <th className="py-3.5 px-4">Jam Pulang</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4">Keterangan / Lokasi</th>
+                <th className="py-3.5 px-4 w-12 text-center whitespace-nowrap">No</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Nama</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Jenis Personel</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Universitas & Jurusan</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Tanggal</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Jam Masuk</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Jam Pulang</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
+                <th className="py-3.5 px-4 min-w-[140px] max-w-xs">Keterangan</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Lokasi Presensi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-800">
               {items.map((item, index) => {
-                const isMagang = item.personType === 'MAGANG';
+                const roleLabel =
+                  item.jenisPersonel ||
+                  (item.personType === 'MAGANG' ? 'Peserta Magang' : 'Tenaga Ahli');
                 const hasLocation =
                   typeof item.latitude === 'number' ||
                   typeof item.latitude_out === 'number';
@@ -85,13 +92,28 @@ export default function AdminAttendanceReport({
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          isMagang
+                          roleLabel === 'Tenaga Ahli'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            : roleLabel === 'MagangHub'
                             ? 'bg-sky-50 text-[#006194] border border-sky-200'
-                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            : 'bg-indigo-50 text-indigo-800 border border-indigo-200'
                         }`}
                       >
-                        {isMagang ? 'Peserta MagangHub' : 'Tenaga Ahli'}
+                        {roleLabel}
                       </span>
+                    </td>
+
+                    <td className="py-3.5 px-4 whitespace-nowrap text-slate-700 text-xs">
+                      {item.universitas ? (
+                        <div>
+                          <span className="font-medium text-slate-900 block">{item.universitas}</span>
+                          {item.jurusan && (
+                            <span className="text-[11px] text-slate-500 font-normal block">{item.jurusan}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic">-</span>
+                      )}
                     </td>
 
                     <td className="py-3.5 px-4 whitespace-nowrap font-medium text-slate-700">
@@ -99,46 +121,57 @@ export default function AdminAttendanceReport({
                     </td>
 
                     <td className="py-3.5 px-4 font-mono text-slate-700 whitespace-nowrap">
-                      {item.checkInFormatted ?? '-'}
+                      {item.checkInFormatted ? (
+                        <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          {item.checkInFormatted}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic">-</span>
+                      )}
                     </td>
 
                     <td className="py-3.5 px-4 font-mono text-slate-700 whitespace-nowrap">
-                      {item.checkOutFormatted ?? '-'}
+                      {item.checkOutFormatted ? (
+                        <span className="flex items-center gap-1.5 text-sky-700 font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+                          {item.checkOutFormatted}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic">-</span>
+                      )}
                     </td>
 
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <AttendanceStatusBadge status={item.status} />
+                      <AttendanceStatusBadge
+                        status={item.status}
+                        hasCheckIn={Boolean(item.checkInFormatted)}
+                        hasCheckOut={Boolean(item.checkOutFormatted)}
+                      />
                     </td>
 
-                    {/* Keterangan / Lokasi Column */}
-                    <td className="py-3.5 px-4">
-                      <div className="space-y-1 max-w-xs">
-                        {item.notes && (
-                          <div className="text-xs text-slate-800 font-medium">
-                            <span className="text-slate-400 font-normal">Ket: </span>
-                            {item.notes}
-                          </div>
-                        )}
+                    {/* Keterangan Column */}
+                    <td className="py-3.5 px-4 text-xs text-slate-700 leading-relaxed max-w-xs break-words">
+                      {item.notes ? item.notes : <span className="text-slate-400 italic">-</span>}
+                    </td>
 
-                        {hasLocation ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500 truncate max-w-[180px]">
-                              {item.address || 'Titik GPS tersimpan'}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedLocationRecord(item)}
-                              className="px-2 py-0.5 rounded bg-sky-50 text-[#006194] hover:bg-sky-100 border border-sky-200 text-[11px] font-semibold whitespace-nowrap cursor-pointer"
-                            >
-                              Lihat Lokasi
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">
-                            {!item.notes ? '-' : ''}
-                          </span>
-                        )}
-                      </div>
+                    {/* Lokasi Presensi Column */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      {hasLocation ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedLocationRecord(item)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-50 text-[#006194] hover:bg-sky-100 border border-sky-200 text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                          </svg>
+                          <span>Lihat Lokasi</span>
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 italic text-xs">-</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -148,7 +181,7 @@ export default function AdminAttendanceReport({
         </div>
       </div>
 
-      {/* Location Modal for Admin (Read-only Map & Coordinates) */}
+      {/* Location Modal for Admin (Interactive Map, Coordinates, Name, Time, Academic Info) */}
       <LocationModal
         isOpen={Boolean(selectedLocationRecord)}
         onClose={() => setSelectedLocationRecord(null)}
@@ -156,12 +189,13 @@ export default function AdminAttendanceReport({
           selectedLocationRecord
             ? {
                 id: selectedLocationRecord.id,
-                date: new Date(),
+                nama: selectedLocationRecord.nama,
+                universitas: selectedLocationRecord.universitas,
+                jurusan: selectedLocationRecord.jurusan,
+                jenisPersonel: selectedLocationRecord.jenisPersonel,
                 dateFormatted: selectedLocationRecord.dateFormatted,
                 checkInFormatted: selectedLocationRecord.checkInFormatted,
                 checkOutFormatted: selectedLocationRecord.checkOutFormatted,
-                status: selectedLocationRecord.status,
-                notes: selectedLocationRecord.notes,
                 latitude: selectedLocationRecord.latitude,
                 longitude: selectedLocationRecord.longitude,
                 accuracy: selectedLocationRecord.accuracy,

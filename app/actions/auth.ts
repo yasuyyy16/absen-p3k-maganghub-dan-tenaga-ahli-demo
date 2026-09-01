@@ -2,15 +2,14 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { resolvePerson } from '@/lib/person';
+import { verifyPassword } from '@/lib/password';
 import {
   signSessionToken,
   SESSION_COOKIE_NAME,
   getSessionCookieOptions,
 } from '@/lib/auth';
-import { SessionPayload } from '@/lib/types';
+import { SessionPayload, PersonnelType } from '@/lib/types';
 
 export interface AuthActionState {
   error?: string | null;
@@ -18,53 +17,73 @@ export interface AuthActionState {
 
 const GENERIC_LOGIN_ERROR = 'Login gagal. Username atau password salah.';
 
+// Dummy hash to protect against timing enumeration attacks when user is not found
+const DUMMY_ARGON2_HASH =
+  '$argon2id$v=19$m=65536,t=3,p=4$dHVtbXlkdW1teWR1bW15$dHVtbXlkdW1teWR1bW15ZHVtbXlkdW1teWR1bW15ZHU';
+
 /**
- * Handles participant login for the Absensi P3K application.
+ * Handles participant login for the Absensi P3K application using the shared `users` table.
  */
 export async function loginAction(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  const username = formData.get('username')?.toString().trim();
+  const rawUsername = formData.get('username')?.toString();
   const password = formData.get('password')?.toString();
 
-  if (!username || !password) {
+  if (!rawUsername || !password) {
+    return { error: GENERIC_LOGIN_ERROR };
+  }
+
+  const username = rawUsername.trim();
+  if (username.length === 0 || password.length === 0) {
     return { error: GENERIC_LOGIN_ERROR };
   }
 
   let token: string | null = null;
 
   try {
-    const user = await prisma.attendance_users.findUnique({
+    // 1. Look up user in the shared PostgreSQL `users` table
+    const user = await prisma.users.findUnique({
       where: { username },
     });
 
-    if (!user || !user.is_active) {
+    // 2. Always run verifyPassword to mitigate timing attacks
+    const isPasswordValid = await verifyPassword(
+      password,
+      user ? user.password_hash : DUMMY_ARGON2_HASH
+    );
+
+    // 3. Reject if user doesn't exist, password is invalid, account is deactivated, or role is not VIEWER
+    // Attendance Web is strictly restricted to participant accounts (VIEWER role only).
+    if (!user || !isPasswordValid || !user.is_active || user.role !== 'VIEWER') {
       return { error: GENERIC_LOGIN_ERROR };
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    if (!isPasswordValid) {
-      return { error: GENERIC_LOGIN_ERROR };
-    }
+    // 4. Update last_login timestamp in `users`
+    await prisma.users.update({
+      where: { id: user.id },
+      data: { last_login: new Date() },
+    });
 
-    const person = await resolvePerson(user.person_type, user.person_id);
-    if (!person) {
-      return { error: GENERIC_LOGIN_ERROR };
-    }
+    // 5. Derive personType for attendance compatibility
+    const isTenagaAhli = user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli';
+    const personType: PersonnelType = isTenagaAhli ? 'TENAGA_AHLI' : 'MAGANG';
 
+    // 6. Assemble secure session payload
     const payload: SessionPayload = {
       userId: user.id,
       username: user.username,
-      personId: user.person_id,
-      personType: user.person_type,
-      nama: person.nama,
+      nama: user.nama,
+      role: user.role,
+      personId: user.id,
+      personType,
     };
 
     token = await signSessionToken(payload);
   } catch (err) {
     // Log safe diagnostic on server side only, never leak details to client
-    console.error('Authentication internal error:', err);
+    console.error('Authentication internal error (omitting sensitive details):', err instanceof Error ? err.message : 'Unknown error');
     return { error: GENERIC_LOGIN_ERROR };
   }
 

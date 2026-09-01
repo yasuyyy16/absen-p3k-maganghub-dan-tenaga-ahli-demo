@@ -29,8 +29,7 @@ export default async function RiwayatPage({ searchParams }: RiwayatPageProps) {
 
   const resolvedParams = await searchParams;
   const historyData = await getAttendanceHistory(
-    session.personType,
-    session.personId,
+    session.userId,
     resolvedParams?.month,
     resolvedParams?.page
   );

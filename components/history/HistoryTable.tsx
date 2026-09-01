@@ -38,12 +38,12 @@ export default function HistoryTable({ items }: HistoryTableProps) {
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                <th className="py-4 px-6">Tanggal</th>
-                <th className="py-4 px-4">Check-in</th>
-                <th className="py-4 px-4">Check-out</th>
-                <th className="py-4 px-4">Status</th>
-                <th className="py-4 px-4">Lokasi GPS</th>
-                <th className="py-4 px-6">Keterangan</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Tanggal</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Check-in</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Check-out</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Lokasi GPS</th>
+                <th className="py-3.5 px-4 min-w-[160px]">Keterangan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-800">
@@ -54,11 +54,11 @@ export default function HistoryTable({ items }: HistoryTableProps) {
 
                 return (
                   <tr key={item.id} className="hover:bg-sky-50/20 transition-colors">
-                    <td className="py-4 px-6 font-medium text-slate-900 whitespace-nowrap">
+                    <td className="py-3.5 px-4 font-medium text-slate-900 whitespace-nowrap">
                       {item.dateFormatted}
                     </td>
 
-                    <td className="py-4 px-4 font-mono text-slate-700 whitespace-nowrap">
+                    <td className="py-3.5 px-4 font-mono text-slate-700 whitespace-nowrap">
                       {item.checkInFormatted ? (
                         <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -69,7 +69,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                       )}
                     </td>
 
-                    <td className="py-4 px-4 font-mono text-slate-700 whitespace-nowrap">
+                    <td className="py-3.5 px-4 font-mono text-slate-700 whitespace-nowrap">
                       {item.checkOutFormatted ? (
                         <span className="flex items-center gap-1.5 text-sky-700 font-medium">
                           <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
@@ -80,17 +80,21 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                       )}
                     </td>
 
-                    <td className="py-4 px-4 whitespace-nowrap">
-                      <AttendanceStatusBadge status={item.status} />
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <AttendanceStatusBadge
+                        status={item.status}
+                        hasCheckIn={Boolean(item.checkInFormatted)}
+                        hasCheckOut={Boolean(item.checkOutFormatted)}
+                      />
                     </td>
 
                     {/* Location Column */}
-                    <td className="py-4 px-4 whitespace-nowrap">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       {hasLocation ? (
                         <button
                           type="button"
                           onClick={() => setSelectedRecord(item)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-[#006194] hover:bg-sky-100 border border-sky-200 text-xs font-semibold transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-50 text-[#006194] hover:bg-sky-100 border border-sky-200 text-xs font-semibold transition-colors cursor-pointer"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -103,7 +107,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                       )}
                     </td>
 
-                    <td className="py-4 px-6 text-slate-600 max-w-xs truncate">
+                    <td className="py-3.5 px-4 text-slate-600 text-xs leading-relaxed max-w-xs break-words">
                       {item.notes ? item.notes : <span className="text-slate-400 italic">-</span>}
                     </td>
                   </tr>
@@ -126,7 +130,11 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                   <span className="text-xs sm:text-sm font-bold text-slate-900">
                     {item.dateFormatted}
                   </span>
-                  <AttendanceStatusBadge status={item.status} />
+                  <AttendanceStatusBadge
+                    status={item.status}
+                    hasCheckIn={Boolean(item.checkInFormatted)}
+                    hasCheckOut={Boolean(item.checkOutFormatted)}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 text-xs">
@@ -151,15 +159,15 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                 {/* Location row on mobile */}
                 {hasLocation && (
                   <div className="flex items-center justify-between gap-2 pt-0.5">
-                    <span className="text-xs text-slate-500 truncate">
-                      {item.address || 'Titik GPS tersimpan'}
+                    <span className="text-xs text-slate-500 truncate flex-1 min-w-0">
+                      {item.address || item.address_out || 'Titik GPS tersimpan'}
                     </span>
                     <button
                       type="button"
                       onClick={() => setSelectedRecord(item)}
-                      className="min-h-[36px] px-2.5 py-1 rounded-lg bg-sky-50 text-[#006194] border border-sky-200 text-xs font-semibold shrink-0 cursor-pointer"
+                      className="min-h-[36px] px-3 py-1 rounded-lg bg-sky-50 text-[#006194] border border-sky-200 text-xs font-semibold shrink-0 cursor-pointer hover:bg-sky-100 transition-colors"
                     >
-                      Lihat Peta
+                      Lihat Lokasi
                     </button>
                   </div>
                 )}

@@ -1,6 +1,8 @@
 import type {
   PersonnelType,
   AttendanceStatus,
+  Role,
+  users,
   attendance_users,
   attendances,
   interns,
@@ -11,6 +13,8 @@ import type {
 export type {
   PersonnelType,
   AttendanceStatus,
+  Role,
+  users,
   attendance_users,
   attendances,
   interns,
@@ -21,16 +25,32 @@ export type {
 export interface SessionPayload {
   userId: number;
   username: string;
-  personId: number;
-  personType: PersonnelType;
   nama: string;
+  role: Role;
+  personId?: number;
+  personType?: PersonnelType;
 }
+
+export type PersonnelCategory = 'Tenaga Ahli' | 'MagangHub' | 'Magang Biasa';
+
+export const VALID_PERSONNEL_CATEGORIES: readonly PersonnelCategory[] = [
+  'Tenaga Ahli',
+  'MagangHub',
+  'Magang Biasa',
+] as const;
 
 export interface PersonDetails {
   id: number;
+  username: string;
   nama: string;
-  personType: PersonnelType;
-  detail: {
+  role: Role;
+  jenisPersonel: string | null;
+  universitas: string | null;
+  jurusan?: string | null;
+  isActive: boolean;
+  personType?: PersonnelType;
+  usernameChanged?: boolean;
+  detail?: {
     jurusan?: string;
     universitas?: string;
     batchId?: number;
@@ -70,7 +90,6 @@ export type AttendanceTodayState =
       type: 'CHECKED_IN';
       checkInTime: Date;
       checkInFormatted: string;
-      canCheckout: boolean;
       isReminderActive: boolean;
       latitude?: number | null;
       longitude?: number | null;

@@ -230,20 +230,15 @@ Setelah berhasil, tombol disabled dan state berhasil harus terlihat.
 
 ## 10. Absen Pulang
 
-UI: **Absen Pulang**.
+UI: **Geser untuk Absen Pulang** (Slide-to-confirm interaction + dialog konfirmasi).
 
-Hanya dapat dilakukan mulai **16:00 WIB**.
-
-Sebelum 16:00:
-- Tombol disabled.
-- Server tetap menolak request yang dimanipulasi.
+Dapat dilakukan kapan saja setelah Absen Pagi berhasil dicatat (tidak ada batasan jam 16:00).
 
 Syarat:
 1. Sudah Absen Pagi.
 2. `status = HADIR`.
 3. `check_in != null`.
 4. `check_out == null`.
-5. Waktu server >= 16:00 WIB.
 
 Timestamp dibuat server. Client tidak boleh memasok timestamp yang dipercaya.
 
@@ -473,18 +468,15 @@ State UI berasal dari state server yang sudah divalidasi.
 State umum:
 ```text
 Belum Absen
-  → Absen Pagi aktif
+  → Absen Pagi aktif (Slide to confirm)
 
 Sudah Absen Pagi
-  → Absen Pagi disabled
-  → menunggu 16:00
-
->= 16:00 + memenuhi syarat
-  → Absen Pulang aktif
+  → Absen Pagi tercatat
+  → Absen Pulang aktif (Slide to confirm)
 
 Sudah Absen Pulang
-  → Absen Pulang disabled
-  → tampilkan konfirmasi
+  → Absen Pulang tercatat
+  → tampilkan konfirmasi / ringkasan presensi
 
 >= 17:00 + belum pulang
   → tampilkan reminder
@@ -580,8 +572,8 @@ Test data dan credential testing harus dibersihkan bila sudah tidak diperlukan d
 - [ ] Pesan "Kamu sudah absen pagi hari ini".
 
 ### Absen Pulang
-- [ ] Sebelum 16:00 ditolak.
-- [ ] Mulai 16:00 aktif jika syarat terpenuhi.
+- [ ] Dapat dilakukan kapan saja setelah Absen Pagi.
+- [ ] Interaksi slide-to-confirm + popup konfirmasi.
 - [ ] Harus Absen Pagi.
 - [ ] Status HADIR.
 - [ ] Satu kali.

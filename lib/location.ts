@@ -40,6 +40,68 @@ export function formatAccuracy(accuracy?: number | null): string {
   return `±${Math.round(accuracy)} meter`;
 }
 
+export type AccuracyLevel = 'GOOD' | 'MODERATE' | 'LOW' | 'UNKNOWN';
+
+export interface AccuracyInfo {
+  level: AccuracyLevel;
+  label: string;
+  formatted: string;
+  badgeStyle: string;
+  textStyle: string;
+  warning?: string;
+}
+
+/**
+ * Evaluates semantic GPS accuracy level and returns formatted UI presentation metadata.
+ * Thresholds:
+ * - <= 20m: Akurasi baik
+ * - 21m - 50m: Akurasi sedang
+ * - > 50m: Akurasi rendah (with advisory warning)
+ */
+export function getAccuracyInfo(accuracy?: number | null): AccuracyInfo {
+  if (typeof accuracy !== 'number' || isNaN(accuracy) || accuracy <= 0) {
+    return {
+      level: 'UNKNOWN',
+      label: 'Tidak tersedia',
+      formatted: 'Tidak tersedia',
+      badgeStyle: 'bg-slate-100 text-slate-600 border-slate-200',
+      textStyle: 'text-slate-500',
+    };
+  }
+
+  const rounded = Math.round(accuracy);
+  const formatted = `±${rounded} meter`;
+
+  if (accuracy <= 20) {
+    return {
+      level: 'GOOD',
+      label: 'Akurasi baik',
+      formatted,
+      badgeStyle: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      textStyle: 'text-emerald-700',
+    };
+  }
+
+  if (accuracy <= 50) {
+    return {
+      level: 'MODERATE',
+      label: 'Akurasi sedang',
+      formatted,
+      badgeStyle: 'bg-amber-50 text-amber-800 border-amber-200',
+      textStyle: 'text-amber-700',
+    };
+  }
+
+  return {
+    level: 'LOW',
+    label: 'Akurasi rendah',
+    formatted,
+    badgeStyle: 'bg-rose-50 text-rose-800 border-rose-200',
+    textStyle: 'text-rose-700',
+    warning: 'Akurasi lokasi rendah. Pastikan GPS aktif dan berada di area terbuka.',
+  };
+}
+
 /**
  * Server-side reverse geocoding helper using OpenStreetMap Nominatim API with timeout.
  * Gracefully returns null if network fails or times out, never throwing to caller.

@@ -78,14 +78,6 @@ export function getWibTimeParts(date: Date = getNowWib()): WibTimeParts {
   };
 }
 
-/**
- * Checks if check-out (Absen Pulang) is permitted.
- * Allowed starting from 16:00:00 WIB.
- */
-export function isCheckoutAllowed(date: Date = getNowWib()): boolean {
-  const { hours } = getWibTimeParts(date);
-  return hours >= 16;
-}
 
 /**
  * Checks if the check-out reminder should be shown.
@@ -179,3 +171,54 @@ export function getMonthDateRange(yearMonth: string): { start: Date; end: Date }
 
   return { start, end };
 }
+
+/**
+ * Returns the day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+ * according to Asia/Jakarta (WIB) timezone.
+ */
+export function getWibDayOfWeek(date: Date = getNowWib()): number {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: WIB_TIMEZONE,
+    weekday: 'short',
+  });
+  const weekday = formatter.format(date);
+  const map: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+  return map[weekday] ?? 0;
+}
+
+/**
+ * Checks whether a given Date is a working day (Monday through Friday) in WIB timezone.
+ * Returns true for Mon-Fri, false for Sat-Sun.
+ */
+export function isWibWorkingDay(date: Date = getNowWib()): boolean {
+  const day = getWibDayOfWeek(date);
+  return day >= 1 && day <= 5;
+}
+
+/**
+ * Safely parses a 'YYYY-MM-DD' date string into a normalized WibDateParts object.
+ */
+export function parseWibDateString(dateStr: string): WibDateParts | null {
+  const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(dateStr.trim());
+  if (!match) return null;
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
+  const dateObj = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  return {
+    year,
+    month,
+    day,
+    dateString: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    dateObj,
+  };
+}
+

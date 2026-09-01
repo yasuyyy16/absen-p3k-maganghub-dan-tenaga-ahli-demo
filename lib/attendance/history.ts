@@ -11,16 +11,35 @@ import { AttendanceHistoryItem, AttendanceHistoryResult } from '@/lib/types';
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /**
- * Loads paginated attendance history for a specific person in a given WIB month.
- * Identity is strictly constrained to the authenticated personType and personId.
+ * Loads paginated attendance history for a specific user/person in a given WIB month.
+ * Identity is strictly constrained to the authenticated user ID.
  */
 export async function getAttendanceHistory(
-  personType: PersonnelType,
-  personId: number,
-  rawMonth?: string,
-  rawPage?: string | number,
+  personTypeOrUserId: PersonnelType | number,
+  personIdOrMonth?: number | string,
+  rawMonthOrPage?: string | number,
+  rawPageOrSize?: string | number,
   pageSize: number = 10
 ): Promise<AttendanceHistoryResult & { selectedMonth: string }> {
+  let targetPersonId: number;
+  let rawMonth: string | undefined;
+  let rawPage: string | number | undefined;
+
+  if (typeof personTypeOrUserId === 'number') {
+    // Called as: getAttendanceHistory(userId, rawMonth, rawPage, pageSize)
+    targetPersonId = personTypeOrUserId;
+    rawMonth = typeof personIdOrMonth === 'string' ? personIdOrMonth : undefined;
+    rawPage = rawMonthOrPage;
+    if (typeof rawPageOrSize === 'number') {
+      pageSize = rawPageOrSize;
+    }
+  } else {
+    // Legacy: called as: getAttendanceHistory(personType, personId, rawMonth, rawPage, pageSize)
+    targetPersonId = typeof personIdOrMonth === 'number' ? personIdOrMonth : 0;
+    rawMonth = typeof rawMonthOrPage === 'string' ? rawMonthOrPage : undefined;
+    rawPage = rawPageOrSize;
+  }
+
   // Validate month parameter, default to current WIB month if missing or invalid
   const selectedMonth =
     rawMonth && MONTH_REGEX.test(rawMonth.trim())
@@ -35,8 +54,7 @@ export async function getAttendanceHistory(
   const { start, end } = getMonthDateRange(selectedMonth);
 
   const where = {
-    person_type: personType,
-    person_id: personId,
+    person_id: targetPersonId,
     date: {
       gte: start,
       lt: end,
