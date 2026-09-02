@@ -1,4 +1,3 @@
-````markdown
 # Absensi P3K - MagangHub & Tenaga Ahli
 
 Web aplikasi absensi untuk peserta MagangHub dan Tenaga Ahli pada unit P3K (Pesisir dan Pulau-Pulau Kecil), Kementerian Kelautan dan Perikanan (KKP).
@@ -41,31 +40,31 @@ Proses otomatis dijalankan menggunakan Vercel Cron melalui endpoint:
 
 ```text
 /api/cron/alfa
-````
+```
 
 Endpoint dilindungi menggunakan `CRON_SECRET` sehingga tidak dapat dipanggil tanpa autentikasi yang valid.
 
 ### Autentikasi
 
-* Login menggunakan username dan password.
-* Password disimpan dalam bentuk hash.
-* Session menggunakan session token.
-* Session memiliki masa berlaku.
-* Pengguna dapat dinonaktifkan tanpa menghapus data historis.
+- Login menggunakan username dan password.
+- Password disimpan dalam bentuk hash.
+- Session menggunakan session token.
+- Session memiliki masa berlaku.
+- Pengguna dapat dinonaktifkan tanpa menghapus data historis.
 
 ## 🛠️ Teknologi
 
-* **Next.js 16**
-* **React 19**
-* **TypeScript**
-* **Prisma ORM**
-* **PostgreSQL**
-* **Tailwind CSS**
-* **Leaflet**
-* **Argon2**
-* **bcryptjs**
-* **Jose**
-* **Vercel**
+- **Next.js 16**
+- **React 19**
+- **TypeScript**
+- **Prisma ORM**
+- **PostgreSQL**
+- **Tailwind CSS**
+- **Leaflet**
+- **Argon2**
+- **bcryptjs**
+- **Jose**
+- **Vercel**
 
 ## 📁 Struktur Project
 
@@ -108,9 +107,9 @@ Aplikasi menggunakan **PostgreSQL** sebagai database dan **Prisma** sebagai ORM.
 
 Model utama yang digunakan:
 
-* `attendance_users`
-* `attendances`
-* `sessions`
+- `attendance_users`
+- `attendances`
+- `sessions`
 
 Jenis personel:
 
@@ -151,9 +150,7 @@ Buat file `.env` pada environment development:
 
 ```env
 DATABASE_URL="your-postgresql-connection-string"
-
 SESSION_SECRET="your-session-secret"
-
 CRON_SECRET="your-cron-secret"
 ```
 
@@ -308,13 +305,13 @@ Endpoint membutuhkan `CRON_SECRET`.
 
 Beberapa mekanisme keamanan yang diterapkan:
 
-* Password tidak disimpan dalam bentuk plaintext.
-* Session menggunakan token yang disimpan dalam database.
-* Endpoint cron dilindungi menggunakan secret.
-* Pengguna dapat dinonaktifkan.
-* Unique constraint mencegah duplikasi absensi pada tanggal yang sama.
-* Environment variables digunakan untuk menyimpan credential dan secret.
-* Credential database tidak disimpan di repository.
+- Password tidak disimpan dalam bentuk plaintext.
+- Session menggunakan token yang disimpan dalam database.
+- Endpoint cron dilindungi menggunakan secret.
+- Pengguna dapat dinonaktifkan.
+- Unique constraint mencegah duplikasi absensi pada tanggal yang sama.
+- Environment variables digunakan untuk menyimpan credential dan secret.
+- Credential database tidak disimpan di repository.
 
 ## 🌐 Deployment
 
@@ -325,10 +322,9 @@ Untuk deployment menggunakan Vercel:
 1. Push repository ke GitHub.
 2. Import repository ke Vercel.
 3. Tambahkan environment variables:
-
-   * `DATABASE_URL`
-   * `SESSION_SECRET`
-   * `CRON_SECRET`
+   - `DATABASE_URL`
+   - `SESSION_SECRET`
+   - `CRON_SECRET`
 4. Deploy project.
 5. Pastikan Vercel Cron aktif.
 6. Verifikasi endpoint `/api/cron/alfa`.
@@ -350,5 +346,3 @@ CRON_SECRET="production-cron-secret"
 Aplikasi ini merupakan sistem internal yang dikembangkan untuk mendukung kebutuhan administrasi dan monitoring kehadiran peserta MagangHub dan Tenaga Ahli pada unit P3K.
 
 Data absensi mencakup informasi waktu dan lokasi sehingga konfigurasi database, authentication secret, dan environment production harus dijaga dengan baik.
-
-
