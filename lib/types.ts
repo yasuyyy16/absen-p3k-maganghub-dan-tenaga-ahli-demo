@@ -133,6 +133,7 @@ export interface AttendanceHistoryItem {
   longitude_out: number | null;
   accuracy_out: number | null;
   address_out: string | null;
+  proof_file_url: string | null;
 }
 
 export interface AttendanceHistoryResult {

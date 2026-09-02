@@ -8,9 +8,12 @@ import {
   getNowWib,
   getWibDateParts,
   formatWibTime,
+  getWibDayOfWeek,
 } from '@/lib/time';
 import { LocationPayload, PersonnelType } from '@/lib/types';
-import { isValidCoordinates, reverseGeocode } from '@/lib/location';
+import { isValidCoordinates, reverseGeocode, isWithinAttendanceRadius } from '@/lib/location';
+import { uploadAttendanceProof } from '@/lib/storage';
+import { MAX_PROOF_FILE_SIZE } from '@/lib/constants/attendance';
 
 export interface AttendanceActionResult {
   success: boolean;
@@ -58,6 +61,25 @@ export async function absenPagiAction(
 
   const now = getNowWib();
   const today = getWibDateParts(now);
+  const dayOfWeek = getWibDayOfWeek(now);
+
+  // Reject attendance on Saturday (6) and Sunday (0)
+  if (dayOfWeek === 6 || dayOfWeek === 0) {
+    return {
+      success: false,
+      message: 'Hari Sabtu dan Minggu merupakan hari libur. Absensi tidak dapat dilakukan.',
+    };
+  }
+
+  // Apply location restriction for Monday-Thursday (1, 2, 3, 4)
+  if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+    if (!isWithinAttendanceRadius(location.latitude, location.longitude)) {
+      return {
+        success: false,
+        message: 'Anda berada di luar radius absensi. Absensi Senin-Kamis hanya dapat dilakukan dalam radius 100 meter dari Gedung Mina Bahari 3.',
+      };
+    }
+  }
 
   try {
     // Check if attendance already exists today for this user
@@ -156,6 +178,25 @@ export async function absenPulangAction(
 
   const now = getNowWib();
   const today = getWibDateParts(now);
+  const dayOfWeek = getWibDayOfWeek(now);
+
+  // Reject attendance on Saturday (6) and Sunday (0)
+  if (dayOfWeek === 6 || dayOfWeek === 0) {
+    return {
+      success: false,
+      message: 'Hari Sabtu dan Minggu merupakan hari libur. Absensi tidak dapat dilakukan.',
+    };
+  }
+
+  // Apply location restriction for Monday-Thursday (1, 2, 3, 4)
+  if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+    if (!isWithinAttendanceRadius(location.latitude, location.longitude)) {
+      return {
+        success: false,
+        message: 'Anda berada di luar radius absensi. Absensi Senin-Kamis hanya dapat dilakukan dalam radius 100 meter dari Gedung Mina Bahari 3.',
+      };
+    }
+  }
 
   try {
     // Find today's attendance record for this user
@@ -231,12 +272,36 @@ export async function submitIzinSakitAction(
 
   const rawStatus = formData.get('status')?.toString().trim().toUpperCase();
   const rawNotes = formData.get('notes')?.toString().trim();
+  const proofFile = formData.get('proof') as File | null;
 
   // Validate status strictly (reject ALFA and unknown statuses)
   if (rawStatus !== 'IZIN' && rawStatus !== 'SAKIT') {
     return {
       success: false,
       message: 'Jenis pengajuan tidak valid. Hanya Izin atau Sakit yang diperbolehkan.',
+    };
+  }
+
+  // Validate proof file
+  if (!proofFile || proofFile.size === 0) {
+    return {
+      success: false,
+      message: 'Bukti wajib diunggah untuk pengajuan IZIN atau SAKIT.',
+    };
+  }
+
+  if (proofFile.size > MAX_PROOF_FILE_SIZE) {
+    return {
+      success: false,
+      message: 'Ukuran file maksimal 1,5 MB.',
+    };
+  }
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+  if (!allowedTypes.includes(proofFile.type)) {
+    return {
+      success: false,
+      message: 'Format bukti harus berupa JPG, JPEG, PNG, atau PDF.',
     };
   }
 
@@ -282,6 +347,8 @@ export async function submitIzinSakitAction(
       };
     }
 
+    const proofUrl = await uploadAttendanceProof(proofFile);
+
     await prisma.attendances.create({
       data: {
         person_type: personType,
@@ -289,6 +356,7 @@ export async function submitIzinSakitAction(
         date: today.dateObj,
         status: rawStatus,
         notes: notes,
+        proof_file_url: proofUrl,
         check_in: null,
         check_out: null,
         updated_at: now,
@@ -338,12 +406,36 @@ export async function ubahKeIzinSakitAction(
 
   const rawStatus = formData.get('status')?.toString().trim().toUpperCase();
   const rawNotes = formData.get('notes')?.toString().trim();
+  const proofFile = formData.get('proof') as File | null;
 
   // Validate status strictly (reject ALFA and unknown statuses)
   if (rawStatus !== 'IZIN' && rawStatus !== 'SAKIT') {
     return {
       success: false,
       message: 'Jenis pengajuan tidak valid. Hanya Izin atau Sakit yang diperbolehkan.',
+    };
+  }
+
+  // Validate proof file
+  if (!proofFile || proofFile.size === 0) {
+    return {
+      success: false,
+      message: 'Bukti wajib diunggah untuk pengajuan IZIN atau SAKIT.',
+    };
+  }
+
+  if (proofFile.size > MAX_PROOF_FILE_SIZE) {
+    return {
+      success: false,
+      message: 'Ukuran file maksimal 1,5 MB.',
+    };
+  }
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+  if (!allowedTypes.includes(proofFile.type)) {
+    return {
+      success: false,
+      message: 'Format bukti harus berupa JPG, JPEG, PNG, atau PDF.',
     };
   }
 
@@ -394,6 +486,8 @@ export async function ubahKeIzinSakitAction(
       };
     }
 
+    const proofUrl = await uploadAttendanceProof(proofFile);
+
     // Convert record to IZIN / SAKIT, clearing check_in, check_out, and location data
     await prisma.attendances.update({
       where: {
@@ -402,6 +496,7 @@ export async function ubahKeIzinSakitAction(
       data: {
         status: rawStatus,
         notes: notes,
+        proof_file_url: proofUrl,
         check_in: null,
         check_out: null,
         latitude: null,

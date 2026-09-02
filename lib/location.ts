@@ -157,3 +157,44 @@ export async function reverseGeocode(
     return null;
   }
 }
+
+/**
+ * Gedung Mina Bahari 3 official coordinates and allowed radius.
+ * Defaults match the required safe fallbacks if env vars are missing.
+ */
+export const OFFICE_LATITUDE = parseFloat(process.env.ABSENSI_OFFICE_LATITUDE || '-6.1791728');
+export const OFFICE_LONGITUDE = parseFloat(process.env.ABSENSI_OFFICE_LONGITUDE || '106.8350564');
+export const OFFICE_RADIUS_METERS = parseFloat(process.env.ABSENSI_OFFICE_RADIUS_METERS || '100');
+
+/**
+ * Calculates the distance between two geographic coordinates in meters using the Haversine formula.
+ */
+export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  if (!isValidCoordinates(lat1, lon1) || !isValidCoordinates(lat2, lon2)) {
+    return Infinity; // Invalid coordinates are infinitely far
+  }
+
+  const R = 6371e3; // Earth radius in meters
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+
+  const phi1 = toRadians(lat1);
+  const phi2 = toRadians(lat2);
+  const deltaPhi = toRadians(lat2 - lat1);
+  const deltaLambda = toRadians(lon2 - lon1);
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+/**
+ * Checks if a given coordinate is within the official attendance radius.
+ */
+export function isWithinAttendanceRadius(latitude: number, longitude: number): boolean {
+  const distance = calculateDistance(latitude, longitude, OFFICE_LATITUDE, OFFICE_LONGITUDE);
+  return distance <= OFFICE_RADIUS_METERS;
+}

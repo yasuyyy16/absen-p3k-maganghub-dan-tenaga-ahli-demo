@@ -9,6 +9,7 @@ import {
   formatWibDateLong,
   formatWibTime,
   isReminderActive,
+  getWibDayOfWeek,
 } from '@/lib/time';
 import { PersonDetails, PersonnelType } from '@/lib/types';
 import UserProfileCard from '@/components/dashboard/UserProfileCard';
@@ -21,6 +22,9 @@ import PostCheckoutCard from '@/components/dashboard/PostCheckoutCard';
 import LeaveStatusCard from '@/components/dashboard/LeaveStatusCard';
 import IzinSakitModal from '@/components/dashboard/IzinSakitModal';
 import AttendanceLocationCard from '@/components/dashboard/AttendanceLocationCard';
+import FridayWfhBanner from '@/components/dashboard/FridayWfhBanner';
+import WeekendHolidayBanner from '@/components/dashboard/WeekendHolidayBanner';
+import { resolveProofUrl } from '@/lib/attendance-proof';
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -57,6 +61,9 @@ export default async function DashboardPage() {
   const todayParts = getWibDateParts(now);
   const timeParts = getWibTimeParts(now);
   const dateFormattedLong = formatWibDateLong(now);
+  const dayOfWeek = getWibDayOfWeek(now);
+  const isFriday = dayOfWeek === 5;
+  const isWeekend = dayOfWeek === 6 || dayOfWeek === 0;
 
   // Query today's attendance record using user.id
   const todayAttendance = await prisma.attendances.findFirst({
@@ -75,6 +82,7 @@ export default async function DashboardPage() {
   let leaveNotes: string | null = null;
   let checkInTimeFormatted: string | null = null;
   let checkOutTimeFormatted: string | null = null;
+  let proofFileUrl: string | null = null;
 
   if (todayAttendance) {
     if (todayAttendance.status === 'HADIR') {
@@ -94,11 +102,13 @@ export default async function DashboardPage() {
       isLeave = true;
       leaveStatus = 'IZIN';
       leaveNotes = todayAttendance.notes;
+      proofFileUrl = resolveProofUrl(todayAttendance.proof_file_url);
     } else if (todayAttendance.status === 'SAKIT') {
       currentBadgeStatus = 'SAKIT';
       isLeave = true;
       leaveStatus = 'SAKIT';
       leaveNotes = todayAttendance.notes;
+      proofFileUrl = resolveProofUrl(todayAttendance.proof_file_url);
     } else if (todayAttendance.status === 'ALFA') {
       currentBadgeStatus = 'ALFA';
     }
@@ -180,7 +190,11 @@ export default async function DashboardPage() {
 
       {/* Leave Status Card */}
       {isLeave && (
-        <LeaveStatusCard status={leaveStatus} notes={leaveNotes} />
+        <LeaveStatusCard 
+          status={leaveStatus} 
+          notes={leaveNotes} 
+          proofFileUrl={proofFileUrl} 
+        />
       )}
 
       {/* Post-Checkout Completed State */}
@@ -205,6 +219,10 @@ export default async function DashboardPage() {
         <AttendanceStatusBadge status={currentBadgeStatus} />
       </div>
 
+      {/* Friday WFH / Weekend Holiday Indicators */}
+      {isFriday && !isLeave && <FridayWfhBanner />}
+      {isWeekend && !isLeave && <WeekendHolidayBanner />}
+
       {/* Attendance Actions: Absen Pagi & Absen Pulang in 2-Column Responsive Grid */}
       {!isLeave && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
@@ -212,6 +230,7 @@ export default async function DashboardPage() {
             isCheckedIn={isCheckedIn}
             checkInTimeFormatted={checkInTimeFormatted}
             isLeave={false}
+            isWeekend={isWeekend}
           />
 
           <AbsenPulangCard
@@ -219,6 +238,7 @@ export default async function DashboardPage() {
             isCheckedOut={isCheckedOut}
             checkOutTimeFormatted={checkOutTimeFormatted}
             isLeave={false}
+            isWeekend={isWeekend}
           />
         </div>
       )}

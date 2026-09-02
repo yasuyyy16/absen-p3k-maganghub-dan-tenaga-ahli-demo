@@ -42,6 +42,7 @@ model attendances {
   longitude_out Float?
   accuracy_out  Float?
   address_out   String?
+  proof_file_url String?
   created_at    DateTime         @default(now())
   updated_at    DateTime
 

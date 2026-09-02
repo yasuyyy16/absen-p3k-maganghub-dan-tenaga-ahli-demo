@@ -44,6 +44,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                 <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
                 <th className="py-3.5 px-4 whitespace-nowrap">Lokasi GPS</th>
                 <th className="py-3.5 px-4 min-w-[160px]">Keterangan</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Bukti</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-800">
@@ -109,6 +110,24 @@ export default function HistoryTable({ items }: HistoryTableProps) {
 
                     <td className="py-3.5 px-4 text-slate-600 text-xs leading-relaxed max-w-xs break-words">
                       {item.notes ? item.notes : <span className="text-slate-400 italic">-</span>}
+                    </td>
+
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      {(item.status === 'IZIN' || item.status === 'SAKIT') && item.proof_file_url ? (
+                        <a
+                          href={item.proof_file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-xs font-semibold transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                          </svg>
+                          <span>Lihat Bukti</span>
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic text-xs">-</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -176,6 +195,22 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                   <div className="text-xs text-slate-600 pt-0.5">
                     <span className="font-semibold text-slate-700">Keterangan: </span>
                     <span className="break-words">{item.notes}</span>
+                  </div>
+                )}
+
+                {(item.status === 'IZIN' || item.status === 'SAKIT') && item.proof_file_url && (
+                  <div className="pt-2">
+                    <a
+                      href={item.proof_file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center w-full gap-1.5 px-3 py-2 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-xs font-semibold transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                      </svg>
+                      <span>Lihat Bukti {item.status === 'IZIN' ? 'Izin' : 'Sakit'}</span>
+                    </a>
                   </div>
                 )}
               </div>

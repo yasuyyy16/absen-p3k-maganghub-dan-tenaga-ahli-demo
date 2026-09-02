@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react';
 import { absenPulangAction } from '@/app/actions/attendance';
 import { getCurrentBrowserLocation } from '@/lib/geolocation';
-import SlideToConfirm from '@/components/dashboard/SlideToConfirm';
 import AttendanceConfirmModal from '@/components/dashboard/AttendanceConfirmModal';
 
 interface AbsenPulangCardProps {
@@ -11,6 +10,7 @@ interface AbsenPulangCardProps {
   isCheckedOut: boolean;
   checkOutTimeFormatted: string | null;
   isLeave: boolean;
+  isWeekend?: boolean;
 }
 
 export default function AbsenPulangCard({
@@ -18,17 +18,18 @@ export default function AbsenPulangCard({
   isCheckedOut,
   checkOutTimeFormatted,
   isLeave,
+  isWeekend = false,
 }: AbsenPulangCardProps) {
   const [isPending, startTransition] = useTransition();
   const [isGeoLoading, setIsGeoLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [resetKey, setResetKey] = useState(0);
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
     message: string;
   } | null>(null);
 
-  const handleSlideComplete = () => {
+  const handleOpenModal = () => {
+    if (isWeekend) return;
     setFeedback(null);
     setIsModalOpen(true);
   };
@@ -36,7 +37,6 @@ export default function AbsenPulangCard({
   const handleCloseModal = () => {
     if (!isGeoLoading && !isPending) {
       setIsModalOpen(false);
-      setResetKey((prev) => prev + 1);
     }
   };
 
@@ -54,7 +54,6 @@ export default function AbsenPulangCard({
         const result = await absenPulangAction(location);
         setIsModalOpen(false);
         if (!result.success) {
-          setResetKey((prev) => prev + 1);
           setFeedback({ type: 'error', message: result.message });
         } else {
           setFeedback({ type: 'success', message: result.message });
@@ -63,7 +62,6 @@ export default function AbsenPulangCard({
     } catch (err: unknown) {
       setIsGeoLoading(false);
       setIsModalOpen(false);
-      setResetKey((prev) => prev + 1);
       const errorMessage =
         err instanceof Error
           ? err.message
@@ -131,13 +129,29 @@ export default function AbsenPulangCard({
           Belum melakukan Absen Pagi.
         </div>
       ) : (
-        <SlideToConfirm
-          label="Geser untuk Absen Pulang →"
-          onSlideComplete={handleSlideComplete}
-          disabled={isBusy}
-          isBusy={isBusy}
-          resetKey={resetKey}
-        />
+        <button
+          type="button"
+          onClick={handleOpenModal}
+          disabled={isBusy || isWeekend}
+          className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#006194] hover:bg-[#004e77] active:bg-[#003d5e] text-white font-bold text-sm sm:text-base transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer shadow-xs active:scale-[0.99] flex items-center justify-center gap-2"
+        >
+          {isBusy ? (
+            <>
+              <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>Memproses...</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5 text-white shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+              </svg>
+              <span>Absen Pulang</span>
+            </>
+          )}
+        </button>
       )}
 
       {/* Confirmation Modal */}

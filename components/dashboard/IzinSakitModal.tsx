@@ -5,6 +5,7 @@ import {
   submitIzinSakitAction,
   ubahKeIzinSakitAction,
 } from '@/app/actions/attendance';
+import { MAX_PROOF_FILE_SIZE } from '@/lib/constants/attendance';
 
 interface IzinSakitModalProps {
   mode?: 'CREATE' | 'CONVERT';
@@ -15,6 +16,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
   const [showConfirm, setShowConfirm] = useState(false);
   const [status, setStatus] = useState<'IZIN' | 'SAKIT'>('IZIN');
   const [notes, setNotes] = useState('');
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -51,12 +53,27 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
     e.preventDefault();
     setErrorMsg(null);
 
+    if (!proofFile) {
+      setErrorMsg('Bukti wajib diunggah untuk IZIN/SAKIT.');
+      return;
+    }
+    if (proofFile.size > MAX_PROOF_FILE_SIZE) {
+      setErrorMsg('Ukuran file maksimal 1,5 MB.');
+      return;
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(proofFile.type)) {
+      setErrorMsg('Format bukti harus berupa JPG, JPEG, PNG, atau PDF.');
+      return;
+    }
+
     if (isConvert) {
       setShowConfirm(true);
     } else {
       const formData = new FormData();
       formData.append('status', status);
       formData.append('notes', notes);
+      formData.append('proof', proofFile);
 
       startTransition(async () => {
         const result = await submitIzinSakitAction(formData);
@@ -65,6 +82,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
         } else {
           setIsOpen(false);
           setNotes('');
+          setProofFile(null);
         }
       });
     }
@@ -74,9 +92,15 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
   const handleConfirmConvert = () => {
     setErrorMsg(null);
 
+    if (!proofFile) {
+      setErrorMsg('Bukti wajib diunggah untuk IZIN/SAKIT.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('status', status);
     formData.append('notes', notes);
+    formData.append('proof', proofFile);
 
     startTransition(async () => {
       const result = await ubahKeIzinSakitAction(formData);
@@ -87,6 +111,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
         setShowConfirm(false);
         setIsOpen(false);
         setNotes('');
+        setProofFile(null);
       }
     });
   };
@@ -238,6 +263,28 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                     placeholder="Tuliskan alasan pengajuan izin atau sakit..."
                     className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50/50 text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all resize-none outline-none"
                   />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="proof"
+                    className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5"
+                  >
+                    Bukti Pendukung <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    id="proof"
+                    name="proof"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    required
+                    onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
+                    disabled={isPending}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-[#006194] hover:file:bg-sky-100"
+                  />
+                  <p className="mt-2 text-[11px] text-slate-500">
+                    Bukti wajib diunggah untuk IZIN/SAKIT. Format: JPG, JPEG, PNG, PDF. Maksimal ukuran: 1,5 MB.
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-2">

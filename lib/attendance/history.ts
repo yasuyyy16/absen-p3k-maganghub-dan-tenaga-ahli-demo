@@ -7,6 +7,7 @@ import {
   formatWibTime,
 } from '@/lib/time';
 import { AttendanceHistoryItem, AttendanceHistoryResult } from '@/lib/types';
+import { resolveProofUrl } from '@/lib/attendance-proof';
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -90,6 +91,7 @@ export async function getAttendanceHistory(
     longitude_out: rec.longitude_out,
     accuracy_out: rec.accuracy_out,
     address_out: rec.address_out,
+    proof_file_url: resolveProofUrl(rec.proof_file_url),
   }));
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
