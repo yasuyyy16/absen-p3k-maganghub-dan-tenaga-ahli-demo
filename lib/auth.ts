@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { SessionPayload } from './types';
+import { SessionPayload, Role } from './types';
 
 export const SESSION_COOKIE_NAME = 'absensi_session';
 export const SESSION_MAX_AGE_SECONDS = 43200; // 12 hours
@@ -53,13 +53,13 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
       typeof payload.userId === 'number' &&
       typeof payload.username === 'string' &&
       typeof payload.nama === 'string' &&
-      payload.role === 'VIEWER'
+      (payload.role === 'VIEWER' || payload.role === 'ADMIN')
     ) {
       return {
         userId: payload.userId,
         username: payload.username,
         nama: payload.nama,
-        role: 'VIEWER',
+        role: payload.role as Role,
         personId:
           typeof payload.personId === 'number'
             ? payload.personId

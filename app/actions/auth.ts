@@ -54,9 +54,9 @@ export async function loginAction(
       user ? user.password_hash : DUMMY_ARGON2_HASH
     );
 
-    // 3. Reject if user doesn't exist, password is invalid, account is deactivated, or role is not VIEWER
-    // Attendance Web is strictly restricted to participant accounts (VIEWER role only).
-    if (!user || !isPasswordValid || !user.is_active || user.role !== 'VIEWER') {
+    // 3. Reject if user doesn't exist, password is invalid, account is deactivated, or role is not allowed.
+    // Attendance Web permits VIEWER and ADMIN, while strictly blocking STAFF.
+    if (!user || !isPasswordValid || !user.is_active || (user.role !== 'VIEWER' && user.role !== 'ADMIN')) {
       return { error: GENERIC_LOGIN_ERROR };
     }
 
