@@ -174,8 +174,6 @@ Contoh:
 CRON_SECRET="your-random-cron-secret"
 ```
 
-> **Jangan commit file `.env` ke repository.**
-
 ## 🚀 Menjalankan Project Secara Lokal
 
 ### 1. Clone Repository
