@@ -20,7 +20,7 @@ export async function resolveUserProfile(userId: number): Promise<PersonDetails 
     },
   });
 
-  if (!user || !user.is_active) {
+  if (!user || !user.is_active || user.role !== 'VIEWER') {
     return null;
   }
 
@@ -31,7 +31,7 @@ export async function resolveUserProfile(userId: number): Promise<PersonDetails 
     id: user.id,
     username: user.username,
     nama: user.nama,
-    role: user.role,
+    role: 'VIEWER',
     jenisPersonel: user.jenis_personel,
     universitas: user.universitas,
     isActive: user.is_active,

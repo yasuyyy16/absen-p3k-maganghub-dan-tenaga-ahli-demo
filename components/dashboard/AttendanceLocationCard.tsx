@@ -26,6 +26,11 @@ interface AttendanceLocationCardProps {
   longitudeOut?: number | null;
   accuracyOut?: number | null;
   addressOut?: string | null;
+  liveLatitude?: number | null;
+  liveLongitude?: number | null;
+  liveAccuracy?: number | null;
+  isLiveLoading?: boolean;
+  liveError?: string | null;
 }
 
 export default function AttendanceLocationCard({
@@ -37,26 +42,32 @@ export default function AttendanceLocationCard({
   longitudeOut,
   accuracyOut,
   addressOut,
+  liveLatitude,
+  liveLongitude,
+  liveAccuracy,
+  isLiveLoading,
+  liveError,
 }: AttendanceLocationCardProps) {
   const hasInLocation = typeof latitude === 'number' && typeof longitude === 'number';
   const hasOutLocation = typeof latitudeOut === 'number' && typeof longitudeOut === 'number';
+  const hasLiveLocation = typeof liveLatitude === 'number' && typeof liveLongitude === 'number';
 
   const [activeTab, setActiveTab] = useState<'IN' | 'OUT'>('IN');
 
-  if (!hasInLocation && !hasOutLocation) {
-    return null;
-  }
-
   const isOut = activeTab === 'OUT';
-  const hasSelectedLocation = isOut ? hasOutLocation : hasInLocation;
 
-  const currentLat = isOut ? latitudeOut : latitude;
-  const currentLon = isOut ? longitudeOut : longitude;
-  const currentAccuracy = isOut ? accuracyOut : accuracy;
-  const currentAddress = isOut ? addressOut : address;
-  const currentTitle = isOut ? 'Lokasi Absen Pulang' : 'Lokasi Absen Pagi';
+  // If viewing OUT and OUT location exists, show recorded OUT location. Otherwise show LIVE location.
+  const showLive = isOut ? !hasOutLocation : !hasInLocation;
 
-  const accuracyInfo = getAccuracyInfo(currentAccuracy);
+  const currentLat = showLive ? liveLatitude : isOut ? latitudeOut : latitude;
+  const currentLon = showLive ? liveLongitude : isOut ? longitudeOut : longitude;
+  const currentAccuracy = showLive ? liveAccuracy : isOut ? accuracyOut : accuracy;
+  const currentAddress = showLive ? 'Posisi Anda saat ini (Realtime GPS)' : isOut ? addressOut : address;
+  const currentTitle = showLive ? 'Posisi Anda Saat Ini' : isOut ? 'Lokasi Absen Pulang' : 'Lokasi Absen Pagi';
+  const hasSelectedLocation =
+    typeof currentLat === 'number' && typeof currentLon === 'number';
+
+  const accuracyInfo = getAccuracyInfo(currentAccuracy ?? null);
 
   return (
     <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
@@ -67,38 +78,62 @@ export default function AttendanceLocationCard({
             Lokasi Presensi
           </h3>
           <p className="text-xs text-slate-500">
-            Titik koordinat geografis terekam saat melakukan presensi.
+            {showLive ? 'Menampilkan posisi GPS Anda secara realtime.' : 'Titik koordinat geografis terekam saat melakukan presensi.'}
           </p>
         </div>
 
-        {/* Tab Toggle */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start sm:self-auto text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setActiveTab('IN')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              activeTab === 'IN'
-                ? 'bg-white text-[#006194] shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Masuk
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('OUT')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              activeTab === 'OUT'
-                ? 'bg-white text-[#006194] shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Pulang
-          </button>
-        </div>
+        {/* Tab Toggle (Always show when live location or recorded data exists) */}
+        {(hasInLocation || hasOutLocation || hasLiveLocation) && (
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start sm:self-auto text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setActiveTab('IN')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                activeTab === 'IN'
+                  ? 'bg-white text-[#006194] shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Masuk
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('OUT')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                activeTab === 'OUT'
+                  ? 'bg-white text-[#006194] shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Pulang
+            </button>
+          </div>
+        )}
       </div>
 
-      {hasSelectedLocation && typeof currentLat === 'number' && typeof currentLon === 'number' ? (
+      {liveError && showLive && (
+        <div
+          role="alert"
+          className="p-3.5 rounded-xl border border-red-200 bg-red-50 text-red-900 text-xs font-medium flex items-center gap-2"
+        >
+          <svg className="w-4 h-4 text-red-700 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          <span>{liveError}</span>
+        </div>
+      )}
+
+      {isLiveLoading && showLive && !hasLiveLocation && (
+        <div className="w-full h-48 sm:h-64 bg-slate-50 border border-slate-200/70 rounded-xl flex flex-col items-center justify-center text-slate-500 text-xs font-medium gap-2">
+          <svg className="animate-spin w-5 h-5 text-[#006194]" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <span>Mencari lokasi Anda...</span>
+        </div>
+      )}
+
+      {(!showLive || hasLiveLocation) && typeof currentLat === 'number' && typeof currentLon === 'number' ? (
         <>
           {/* Map Visualization */}
           <AttendanceMap
@@ -179,7 +214,16 @@ export default function AttendanceLocationCard({
             </div>
           </div>
         </>
-      ) : (
+      ) : showLive && !isLiveLoading ? (
+        <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center space-y-1 text-slate-500">
+          <p className="text-xs sm:text-sm font-medium">
+            Menunggu sinyal GPS perangkat...
+          </p>
+          <p className="text-xs text-slate-400">
+            Pastikan izin lokasi/GPS aktif di perangkat Anda.
+          </p>
+        </div>
+      ) : !showLive && !hasSelectedLocation ? (
         <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center space-y-1 text-slate-500">
           <p className="text-xs sm:text-sm font-medium">
             {isOut
@@ -192,7 +236,7 @@ export default function AttendanceLocationCard({
               : 'Data lokasi tersimpan saat Anda melakukan Absen Pagi.'}
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

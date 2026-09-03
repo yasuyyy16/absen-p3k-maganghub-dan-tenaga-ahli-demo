@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { absenPagiAction } from '@/app/actions/attendance';
 import { getCurrentBrowserLocation } from '@/lib/geolocation';
 import AttendanceConfirmModal from '@/components/dashboard/AttendanceConfirmModal';
+import type { LocationPayload } from '@/lib/types';
 
 interface AbsenPagiCardProps {
   isCheckedIn: boolean;
@@ -11,6 +12,8 @@ interface AbsenPagiCardProps {
   isLeave: boolean;
   isWeekend?: boolean;
   isWindowClosed?: boolean;
+  liveLocation?: LocationPayload | null;
+  liveError?: string | null;
 }
 
 export default function AbsenPagiCard({
@@ -19,6 +22,8 @@ export default function AbsenPagiCard({
   isLeave,
   isWeekend = false,
   isWindowClosed = false,
+  liveLocation,
+  liveError,
 }: AbsenPagiCardProps) {
   const [isPending, startTransition] = useTransition();
   const [isGeoLoading, setIsGeoLoading] = useState(false);
@@ -45,11 +50,18 @@ export default function AbsenPagiCard({
     setIsGeoLoading(true);
 
     try {
-      // 1. Request GPS position from browser
-      const location = await getCurrentBrowserLocation();
+      // Use cached live location if available, otherwise fallback to getCurrentBrowserLocation
+      let location: LocationPayload;
+      if (liveLocation) {
+        location = liveLocation;
+      } else if (liveError) {
+        // If there was an error watching, retry via getCurrentBrowserLocation to get exact error
+        location = await getCurrentBrowserLocation();
+      } else {
+        location = await getCurrentBrowserLocation();
+      }
       setIsGeoLoading(false);
 
-      // 2. Submit to Server Action with coordinates
       startTransition(async () => {
         const result = await absenPagiAction(location);
         setIsModalOpen(false);

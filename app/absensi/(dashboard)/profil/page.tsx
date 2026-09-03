@@ -7,7 +7,7 @@ import ProfileForm from '@/components/profile/ProfileForm';
 export default async function ProfilePage() {
   const session = await getSession();
 
-  if (!session) {
+  if (!session || session.role !== 'VIEWER') {
     redirect('/absensi/login');
   }
 
@@ -16,7 +16,7 @@ export default async function ProfilePage() {
     where: { id: session.userId },
   });
 
-  if (!user || !user.is_active) {
+  if (!user || !user.is_active || user.role !== 'VIEWER') {
     redirect('/absensi/login');
   }
 

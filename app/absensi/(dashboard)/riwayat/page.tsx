@@ -23,7 +23,7 @@ interface RiwayatPageProps {
 export default async function RiwayatPage({ searchParams }: RiwayatPageProps) {
   const session = await getSession();
 
-  if (!session) {
+  if (!session || session.role !== 'VIEWER') {
     redirect('/absensi/login');
   }
 

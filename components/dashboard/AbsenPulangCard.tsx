@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { absenPulangAction } from '@/app/actions/attendance';
+import type { LocationPayload } from '@/lib/types';
 import { getCurrentBrowserLocation } from '@/lib/geolocation';
 import AttendanceConfirmModal from '@/components/dashboard/AttendanceConfirmModal';
 
@@ -11,6 +12,8 @@ interface AbsenPulangCardProps {
   checkOutTimeFormatted: string | null;
   isLeave: boolean;
   isWeekend?: boolean;
+  liveLocation?: LocationPayload | null;
+  liveError?: string | null;
 }
 
 export default function AbsenPulangCard({
@@ -19,6 +22,7 @@ export default function AbsenPulangCard({
   checkOutTimeFormatted,
   isLeave,
   isWeekend = false,
+  liveLocation,
 }: AbsenPulangCardProps) {
   const [isPending, startTransition] = useTransition();
   const [isGeoLoading, setIsGeoLoading] = useState(false);
@@ -45,11 +49,10 @@ export default function AbsenPulangCard({
     setIsGeoLoading(true);
 
     try {
-      // 1. Request GPS position from browser
-      const location = await getCurrentBrowserLocation();
+      const location = liveLocation ?? (await getCurrentBrowserLocation());
       setIsGeoLoading(false);
 
-      // 2. Submit to Server Action with coordinates
+      // Submit to Server Action with coordinates
       startTransition(async () => {
         const result = await absenPulangAction(location);
         setIsModalOpen(false);

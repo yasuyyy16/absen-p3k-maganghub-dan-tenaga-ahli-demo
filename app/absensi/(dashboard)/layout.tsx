@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getSession } from '@/lib/auth';
 import { logoutAction } from '@/app/actions/auth';
 import BottomNav from '@/components/layout/BottomNav';
 import { getWibDateParts } from '@/lib/time';
@@ -9,11 +11,16 @@ export const metadata: Metadata = {
   description: 'Sistem Absensi Internal Peserta MagangHub dan Tenaga Ahli unit P3K KKP.',
 };
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getSession();
+  if (!session || session.role !== 'VIEWER') {
+    redirect('/absensi/login');
+  }
+
   return (
     <div className="min-h-dvh flex flex-col bg-[#f7f9ff] text-[#181c20]">
       {/* Header / Navbar */}

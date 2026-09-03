@@ -23,15 +23,12 @@ export default function AttendanceMap({
 }: AttendanceMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const circleRef = useRef<L.Circle | null>(null);
 
+  // Initialize map once
   useEffect(() => {
     if (!mapContainerRef.current) return;
-
-    // Clean up existing map instance if any
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
 
     try {
       const map = L.map(mapContainerRef.current, {
@@ -65,6 +62,7 @@ export default function AttendanceMap({
       });
 
       const marker = L.marker([latitude, longitude], { icon: customIcon }).addTo(map);
+      markerRef.current = marker;
 
       const popupContent = `
         <div style="font-family: var(--font-inter, sans-serif); font-size: 12px; padding: 2px;">
@@ -73,12 +71,10 @@ export default function AttendanceMap({
           <span style="color: #64748b; font-family: monospace; font-size: 10px; margin-top: 4px; display: block;">${latitude.toFixed(6)}, ${longitude.toFixed(6)}</span>
         </div>
       `;
-
       marker.bindPopup(popupContent);
 
-      // Add accuracy circle if accuracy in meters is valid
       if (typeof accuracy === 'number' && accuracy > 0 && accuracy < 500) {
-        L.circle([latitude, longitude], {
+        const circle = L.circle([latitude, longitude], {
           radius: accuracy,
           color: '#006194',
           fillColor: '#006194',
@@ -86,9 +82,9 @@ export default function AttendanceMap({
           weight: 1.5,
           dashArray: '4, 4',
         }).addTo(map);
+        circleRef.current = circle;
       }
 
-      // Invalidate map size once rendered
       setTimeout(() => {
         if (mapInstanceRef.current) {
           mapInstanceRef.current.invalidateSize();
@@ -102,8 +98,48 @@ export default function AttendanceMap({
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+        markerRef.current = null;
+        circleRef.current = null;
       }
     };
+  }, []);
+
+  // Update marker, circle, and pan map smoothly when lat/lng/accuracy changes in realtime
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const marker = markerRef.current;
+    if (!map || !marker) return;
+
+    const newLatLng = L.latLng(latitude, longitude);
+    marker.setLatLng(newLatLng);
+
+    const popupContent = `
+      <div style="font-family: var(--font-inter, sans-serif); font-size: 12px; padding: 2px;">
+        <strong style="color: #006194; display: block; margin-bottom: 2px;">${title}</strong>
+        <span style="color: #475569; font-size: 11px; display: block;">${address || 'Titik Koordinat GPS'}</span>
+        <span style="color: #64748b; font-family: monospace; font-size: 10px; margin-top: 4px; display: block;">${latitude.toFixed(6)}, ${longitude.toFixed(6)}</span>
+      </div>
+    `;
+    marker.setPopupContent(popupContent);
+
+    // Update accuracy circle
+    if (circleRef.current) {
+      circleRef.current.remove();
+      circleRef.current = null;
+    }
+    if (typeof accuracy === 'number' && accuracy > 0 && accuracy < 500) {
+      const circle = L.circle(newLatLng, {
+        radius: accuracy,
+        color: '#006194',
+        fillColor: '#006194',
+        fillOpacity: 0.12,
+        weight: 1.5,
+        dashArray: '4, 4',
+      }).addTo(map);
+      circleRef.current = circle;
+    }
+
+    map.panTo(newLatLng, { animate: true });
   }, [latitude, longitude, accuracy, address, title]);
 
   return (

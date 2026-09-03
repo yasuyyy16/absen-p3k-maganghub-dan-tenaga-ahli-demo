@@ -16,6 +16,7 @@ export interface AuthActionState {
 }
 
 const GENERIC_LOGIN_ERROR = 'Login gagal. Username atau password salah.';
+const ROLE_RESTRICTION_ERROR = 'Akun Anda tidak memiliki akses untuk login ke Web Presensi. Silakan gunakan Dashboard Kepegawaian.';
 
 // Dummy hash to protect against timing enumeration attacks when user is not found
 const DUMMY_ARGON2_HASH =
@@ -54,9 +55,19 @@ export async function loginAction(
       user ? user.password_hash : DUMMY_ARGON2_HASH
     );
 
-    // 3. Reject if user doesn't exist, password is invalid, account is deactivated, or role is not allowed.
-    // Attendance Web permits VIEWER and ADMIN, while strictly blocking STAFF.
-    if (!user || !isPasswordValid || !user.is_active || (user.role !== 'VIEWER' && user.role !== 'ADMIN')) {
+    // 3. Reject if user doesn't exist, password is invalid, or account is deactivated.
+    if (!user || !isPasswordValid || !user.is_active) {
+      return { error: GENERIC_LOGIN_ERROR };
+    }
+
+    // Reject if role is STAFF or ADMIN, but credential was valid.
+    // Web Presensi is strictly restricted to participant accounts (VIEWER role only).
+    // ADMIN and STAFF are strictly prohibited from logging in to Web Presensi.
+    if (user.role === 'STAFF' || user.role === 'ADMIN') {
+      return { error: ROLE_RESTRICTION_ERROR };
+    }
+
+    if (user.role !== 'VIEWER') {
       return { error: GENERIC_LOGIN_ERROR };
     }
 
@@ -75,7 +86,7 @@ export async function loginAction(
       userId: user.id,
       username: user.username,
       nama: user.nama,
-      role: user.role,
+      role: 'VIEWER',
       personId: user.id,
       personType,
     };

@@ -26,12 +26,13 @@ import IzinSakitModal from '@/components/dashboard/IzinSakitModal';
 import AttendanceLocationCard from '@/components/dashboard/AttendanceLocationCard';
 import FridayWfhBanner from '@/components/dashboard/FridayWfhBanner';
 import WeekendHolidayBanner from '@/components/dashboard/WeekendHolidayBanner';
+import DashboardActionsContainer from '@/components/dashboard/DashboardActionsContainer';
 import { resolveProofUrl } from '@/lib/attendance-proof';
 
 export default async function DashboardPage() {
   const session = await getSession();
 
-  if (!session) {
+  if (!session || session.role !== 'VIEWER') {
     redirect('/absensi/login');
   }
 
@@ -40,7 +41,7 @@ export default async function DashboardPage() {
     where: { id: session.userId },
   });
 
-  if (!user || !user.is_active) {
+  if (!user || !user.is_active || user.role !== 'VIEWER') {
     redirect('/absensi/login');
   }
 
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
     id: user.id,
     username: user.username,
     nama: user.nama,
-    role: user.role,
+    role: 'VIEWER',
     jenisPersonel: user.jenis_personel,
     universitas: user.universitas,
     isActive: user.is_active,
@@ -235,40 +236,17 @@ export default async function DashboardPage() {
       {isFriday && !isLeave && <FridayWfhBanner />}
       {isWeekend && !isLeave && <WeekendHolidayBanner />}
 
-      {/* Attendance Actions: Absen Pagi & Absen Pulang in 2-Column Responsive Grid */}
-      {!isLeave && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-          <AbsenPagiCard
-            isCheckedIn={isCheckedIn}
-            checkInTimeFormatted={checkInTimeFormatted}
-            isLeave={false}
-            isWeekend={isWeekend}
-            isWindowClosed={isWindowClosed}
-          />
-
-          <AbsenPulangCard
-            isCheckedIn={isCheckedIn}
-            isCheckedOut={isCheckedOut}
-            checkOutTimeFormatted={checkOutTimeFormatted}
-            isLeave={false}
-            isWeekend={isWeekend}
-          />
-        </div>
-      )}
-
-      {/* Recorded GPS Attendance Location Card */}
-      {hasLocationData && (
-        <AttendanceLocationCard
-          latitude={todayAttendance.latitude}
-          longitude={todayAttendance.longitude}
-          accuracy={todayAttendance.accuracy}
-          address={todayAttendance.address}
-          latitudeOut={todayAttendance.latitude_out}
-          longitudeOut={todayAttendance.longitude_out}
-          accuracyOut={todayAttendance.accuracy_out}
-          addressOut={todayAttendance.address_out}
-        />
-      )}
+      {/* Attendance Actions & Map Tracking */}
+      <DashboardActionsContainer
+        isCheckedIn={isCheckedIn}
+        checkInTimeFormatted={checkInTimeFormatted}
+        isCheckedOut={isCheckedOut}
+        checkOutTimeFormatted={checkOutTimeFormatted}
+        isLeave={isLeave}
+        isWeekend={isWeekend}
+        isWindowClosed={isWindowClosed}
+        todayAttendance={todayAttendance}
+      />
 
       {/* Initial Izin / Sakit Action Trigger */}
       {isNotRecorded && (

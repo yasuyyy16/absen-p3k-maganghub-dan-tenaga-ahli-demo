@@ -10,16 +10,16 @@ export async function middleware(request: NextRequest) {
 
   const isLoginPage = pathname === '/absensi/login';
 
-  // If user is accessing login page while already authenticated
+  // If user is accessing login page while already authenticated with a valid VIEWER session
   if (isLoginPage) {
-    if (session) {
+    if (session && session.role === 'VIEWER') {
       return NextResponse.redirect(new URL('/absensi', request.url));
     }
     return NextResponse.next();
   }
 
-  // If user is accessing any protected /absensi/* route without valid session
-  if (!session) {
+  // If user is accessing any protected /absensi/* route without a valid VIEWER session
+  if (!session || session.role !== 'VIEWER') {
     return NextResponse.redirect(new URL('/absensi/login', request.url));
   }
 

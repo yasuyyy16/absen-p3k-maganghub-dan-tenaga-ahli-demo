@@ -53,13 +53,13 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
       typeof payload.userId === 'number' &&
       typeof payload.username === 'string' &&
       typeof payload.nama === 'string' &&
-      (payload.role === 'VIEWER' || payload.role === 'ADMIN')
+      payload.role === 'VIEWER'
     ) {
       return {
         userId: payload.userId,
         username: payload.username,
         nama: payload.nama,
-        role: payload.role as Role,
+        role: 'VIEWER',
         personId:
           typeof payload.personId === 'number'
             ? payload.personId
