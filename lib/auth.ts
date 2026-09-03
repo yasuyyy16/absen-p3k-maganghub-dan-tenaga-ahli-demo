@@ -92,6 +92,29 @@ export function getSessionCookieOptions() {
  * Intended for use in Server Components and Server Actions.
  */
 export async function getSession(): Promise<SessionPayload | null> {
+  if (process.env.NODE_ENV !== 'production' && process.env.TEST_AUTH_USER_ID) {
+    const userIdNum = parseInt(process.env.TEST_AUTH_USER_ID, 10);
+    if (!isNaN(userIdNum)) {
+      const { prisma } = await import('./prisma');
+      const user = await prisma.users.findUnique({
+        where: { id: userIdNum },
+      });
+      if (user && user.is_active) {
+        return {
+          userId: user.id,
+          username: user.username,
+          nama: user.nama,
+          role: 'VIEWER',
+          personId: user.id,
+          personType:
+            user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli'
+              ? 'TENAGA_AHLI'
+              : 'MAGANG',
+        };
+      }
+    }
+  }
+
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;

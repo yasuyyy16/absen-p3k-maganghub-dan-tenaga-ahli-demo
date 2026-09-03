@@ -10,6 +10,7 @@ interface AbsenPagiCardProps {
   checkInTimeFormatted: string | null;
   isLeave: boolean;
   isWeekend?: boolean;
+  isWindowClosed?: boolean;
 }
 
 export default function AbsenPagiCard({
@@ -17,6 +18,7 @@ export default function AbsenPagiCard({
   checkInTimeFormatted,
   isLeave,
   isWeekend = false,
+  isWindowClosed = false,
 }: AbsenPagiCardProps) {
   const [isPending, startTransition] = useTransition();
   const [isGeoLoading, setIsGeoLoading] = useState(false);
@@ -27,7 +29,7 @@ export default function AbsenPagiCard({
   } | null>(null);
 
   const handleOpenModal = () => {
-    if (isWeekend) return;
+    if (isWeekend || isWindowClosed) return;
     setFeedback(null);
     setIsModalOpen(true);
   };
@@ -123,29 +125,42 @@ export default function AbsenPagiCard({
           Status hari ini Izin / Sakit.
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={handleOpenModal}
-          disabled={isBusy || isWeekend}
-          className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#006194] hover:bg-[#004e77] active:bg-[#003d5e] text-white font-bold text-sm sm:text-base transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer shadow-xs active:scale-[0.99] flex items-center justify-center gap-2"
-        >
-          {isBusy ? (
-            <>
-              <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        <>
+          <button
+            type="button"
+            onClick={handleOpenModal}
+            disabled={isBusy || isWeekend || isWindowClosed}
+            className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#006194] hover:bg-[#004e77] active:bg-[#003d5e] text-white font-bold text-sm sm:text-base transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer shadow-xs active:scale-[0.99] flex items-center justify-center gap-2"
+          >
+            {isBusy ? (
+              <>
+                <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span>Memproses...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 text-white shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                </svg>
+                <span>Absen Pagi</span>
+              </>
+            )}
+          </button>
+
+          {isWindowClosed && (
+            <div className="mt-3.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium flex items-start gap-2">
+              <svg className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
               </svg>
-              <span>Memproses...</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5 text-white shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
-              </svg>
-              <span>Absen Pagi</span>
-            </>
+              <span>
+                Waktu absensi hari ini telah berakhir. Absen Pagi tidak dapat dilakukan setelah pukul 23:58 WIB.
+              </span>
+            </div>
           )}
-        </button>
+        </>
       )}
 
       {/* Confirmation Modal */}

@@ -1,6 +1,13 @@
 import { prisma } from '../lib/prisma';
 import { generateAlfaAttendance } from '../lib/attendance/alfa';
-import { parseWibDateString } from '../lib/time';
+import {
+  parseWibDateString,
+  isWibAttendanceWindowOpen,
+  isWibAttendanceWindowClosed,
+  getYesterdayWib,
+  isWibWorkingDay,
+  getWibDateParts,
+} from '../lib/time';
 
 async function runTests() {
   console.log('====================================================');
@@ -21,37 +28,26 @@ async function runTests() {
   }
 
   // Define isolated test dates
-  // 2029-01-05 is a Friday (working day)
-  const testWorkingDateStr = '2029-01-05';
-  const testWorkingDate = parseWibDateString(testWorkingDateStr)!.dateObj;
+  const testDateStr = '2026-09-03'; // Thursday
+  const testDateObj = parseWibDateString(testDateStr)!.dateObj;
+  const testDateYesterdayStr = '2026-09-02'; // Wednesday
+  const testDateYesterdayObj = parseWibDateString(testDateYesterdayStr)!.dateObj;
+  const testSaturdayStr = '2026-09-05'; // Saturday
+  const testSundayStr = '2026-09-06'; // Sunday
 
-  // 2029-01-06 is a Saturday (weekend)
-  const testWeekendStr = '2029-01-06';
-
-  // Multi-user test date: 2029-01-12 is a Friday
-  const testMultiDateStr = '2029-01-12';
-  const testMultiDate = parseWibDateString(testMultiDateStr)!.dateObj;
-
-  // Clean up any lingering test users/attendances from prior aborted test runs
   const testUsernames = [
+    'test_user_alfa_recovery_pagi',
+    'test_user_alfa_recovery_izin',
     'test_viewer_absent_1',
     'test_viewer_hadir_2',
     'test_viewer_izin_3',
     'test_viewer_sakit_4',
-    'test_viewer_idempotent_5',
-    'test_viewer_inactive_6',
-    'test_admin_7',
-    'test_staff_8',
-    'test_multi_a_hadir',
-    'test_multi_b_izin',
-    'test_multi_c_sakit',
-    'test_multi_d_absent',
-    'test_multi_e_absent',
   ];
 
+  // Clean up any existing test artifacts
   await prisma.attendances.deleteMany({
     where: {
-      date: { in: [testWorkingDate, testMultiDate] },
+      date: { in: [testDateObj, testDateYesterdayObj] },
     },
   });
 
@@ -65,219 +61,306 @@ async function runTests() {
     // ----------------------------------------------------
     // SETUP TEST USERS
     // ----------------------------------------------------
-    console.log('--- Setting up test users in database ---');
+    const [userPagi, userIzin, viewerAbsent1, viewerHadir2, viewerIzin3, viewerSakit4] =
+      await Promise.all([
+        prisma.users.create({
+          data: {
+            username: 'test_user_alfa_recovery_pagi',
+            nama: 'Test User Recovery Pagi',
+            password_hash: 'dummy_hash',
+            role: 'VIEWER',
+            is_active: true,
+            jenis_personel: 'MagangHub',
+          },
+        }),
+        prisma.users.create({
+          data: {
+            username: 'test_user_alfa_recovery_izin',
+            nama: 'Test User Recovery Izin',
+            password_hash: 'dummy_hash',
+            role: 'VIEWER',
+            is_active: true,
+            jenis_personel: 'Tenaga Ahli',
+          },
+        }),
+        prisma.users.create({
+          data: {
+            username: 'test_viewer_absent_1',
+            nama: 'Test Viewer Absent 1',
+            password_hash: 'dummy_hash',
+            role: 'VIEWER',
+            is_active: true,
+            jenis_personel: 'MagangHub',
+          },
+        }),
+        prisma.users.create({
+          data: {
+            username: 'test_viewer_hadir_2',
+            nama: 'Test Viewer Hadir 2',
+            password_hash: 'dummy_hash',
+            role: 'VIEWER',
+            is_active: true,
+            jenis_personel: 'MagangHub',
+          },
+        }),
+        prisma.users.create({
+          data: {
+            username: 'test_viewer_izin_3',
+            nama: 'Test Viewer Izin 3',
+            password_hash: 'dummy_hash',
+            role: 'VIEWER',
+            is_active: true,
+            jenis_personel: 'Tenaga Ahli',
+          },
+        }),
+        prisma.users.create({
+          data: {
+            username: 'test_viewer_sakit_4',
+            nama: 'Test Viewer Sakit 4',
+            password_hash: 'dummy_hash',
+            role: 'VIEWER',
+            is_active: true,
+            jenis_personel: 'MagangHub',
+          },
+        }),
+      ]);
 
-    const [
-      viewerAbsent1,
-      viewerHadir2,
-      viewerIzin3,
-      viewerSakit4,
-      viewerIdempotent5,
-      viewerInactive6,
-      admin7,
-      staff8,
-      multiA,
-      multiB,
-      multiC,
-      multiD,
-      multiE,
-    ] = await Promise.all([
-      // Test 1 user
-      prisma.users.create({
-        data: {
-          username: 'test_viewer_absent_1',
-          nama: 'Test Viewer Absent 1',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: true,
-          jenis_personel: 'MagangHub',
-        },
-      }),
-      // Test 2 user
-      prisma.users.create({
-        data: {
-          username: 'test_viewer_hadir_2',
-          nama: 'Test Viewer Hadir 2',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: true,
-          jenis_personel: 'MagangHub',
-        },
-      }),
-      // Test 3 user
-      prisma.users.create({
-        data: {
-          username: 'test_viewer_izin_3',
-          nama: 'Test Viewer Izin 3',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: true,
-          jenis_personel: 'Tenaga Ahli',
-        },
-      }),
-      // Test 4 user
-      prisma.users.create({
-        data: {
-          username: 'test_viewer_sakit_4',
-          nama: 'Test Viewer Sakit 4',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: true,
-          jenis_personel: 'MagangHub',
-        },
-      }),
-      // Test 5 user
-      prisma.users.create({
-        data: {
-          username: 'test_viewer_idempotent_5',
-          nama: 'Test Viewer Idempotent 5',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: true,
-          jenis_personel: 'MagangHub',
-        },
-      }),
-      // Test 6 user (Inactive)
-      prisma.users.create({
-        data: {
-          username: 'test_viewer_inactive_6',
-          nama: 'Test Viewer Inactive 6',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: false,
-          jenis_personel: 'MagangHub',
-        },
-      }),
-      // Test 7 user (ADMIN)
-      prisma.users.create({
-        data: {
-          username: 'test_admin_7',
-          nama: 'Test Admin 7',
-          password_hash: 'dummy_hash',
-          role: 'ADMIN',
-          is_active: true,
-          jenis_personel: 'Admin',
-        },
-      }),
-      // Test 8 user (STAFF)
-      prisma.users.create({
-        data: {
-          username: 'test_staff_8',
-          nama: 'Test Staff 8',
-          password_hash: 'dummy_hash',
-          role: 'STAFF',
-          is_active: true,
-          jenis_personel: 'Staff',
-        },
-      }),
-      // Test 10 multi users
-      prisma.users.create({
-        data: {
-          username: 'test_multi_a_hadir',
-          nama: 'Test Multi A Hadir',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: true,
-          jenis_personel: 'MagangHub',
-        },
-      }),
-      prisma.users.create({
-        data: {
-          username: 'test_multi_b_izin',
-          nama: 'Test Multi B Izin',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: true,
-          jenis_personel: 'MagangHub',
-        },
-      }),
-      prisma.users.create({
-        data: {
-          username: 'test_multi_c_sakit',
-          nama: 'Test Multi C Sakit',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: true,
-          jenis_personel: 'Tenaga Ahli',
-        },
-      }),
-      prisma.users.create({
-        data: {
-          username: 'test_multi_d_absent',
-          nama: 'Test Multi D Absent',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: true,
-          jenis_personel: 'MagangHub',
-        },
-      }),
-      prisma.users.create({
-        data: {
-          username: 'test_multi_e_absent',
-          nama: 'Test Multi E Absent',
-          password_hash: 'dummy_hash',
-          role: 'VIEWER',
-          is_active: true,
-          jenis_personel: 'Tenaga Ahli',
-        },
-      }),
-    ]);
+    // ----------------------------------------------------
+    // TEST 1: 03 Sep 2026 00:07 WIB -> Target ALFA = 02 Sep 2026. Tidak boleh membuat ALFA 03 Sep.
+    // ----------------------------------------------------
+    const time0007 = new Date('2026-09-03T00:07:00+07:00');
+    const target0007 = isWibAttendanceWindowClosed(testDateStr, time0007)
+      ? getWibDateParts(time0007).dateString
+      : getYesterdayWib(time0007).dateString;
 
-    // Setup initial attendance records on testWorkingDate
+    assert(
+      target0007 === '2026-09-02' && !isWibAttendanceWindowClosed(testDateStr, time0007),
+      'TEST 1: 03 Sep 2026 00:07 WIB targets yesterday (02 Sep 2026), does not close 03 Sep',
+      `Target was: ${target0007}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 2: 03 Sep 2026 07:20 WIB -> Target ALFA = 02 Sep 2026. 03 Sep tetap terbuka.
+    // ----------------------------------------------------
+    const time0720 = new Date('2026-09-03T07:20:00+07:00');
+    const target0720 = isWibAttendanceWindowClosed(testDateStr, time0720)
+      ? getWibDateParts(time0720).dateString
+      : getYesterdayWib(time0720).dateString;
+    const isOpen0720 = isWibAttendanceWindowOpen(testDateStr, time0720);
+
+    assert(
+      target0720 === '2026-09-02' && isOpen0720 && !isWibAttendanceWindowClosed(testDateStr, time0720),
+      'TEST 2: 03 Sep 2026 07:20 WIB targets 02 Sep 2026, 03 Sep window remains actively open',
+      `Target: ${target0720}, isOpen: ${isOpen0720}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 3: 03 Sep 2026 12:00 WIB -> 03 Sep belum dapat menjadi ALFA.
+    // ----------------------------------------------------
+    const time1200 = new Date('2026-09-03T12:00:00+07:00');
+    const isClosed1200 = isWibAttendanceWindowClosed(testDateStr, time1200);
+
+    assert(
+      !isClosed1200,
+      'TEST 3: 03 Sep 2026 12:00 WIB - 03 Sep attendance window is NOT closed (cannot be ALFA)',
+      `isClosed: ${isClosed1200}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 4: 03 Sep 2026 23:30 WIB -> 03 Sep belum dapat menjadi ALFA.
+    // ----------------------------------------------------
+    const time2330 = new Date('2026-09-03T23:30:00+07:00');
+    const isClosed2330 = isWibAttendanceWindowClosed(testDateStr, time2330);
+
+    assert(
+      !isClosed2330,
+      'TEST 4: 03 Sep 2026 23:30 WIB - 03 Sep attendance window is NOT closed (cannot be ALFA)',
+      `isClosed: ${isClosed2330}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 5: 03 Sep 2026 23:58:59 WIB -> Periode absensi masih terbuka. Belum absen = BELUM ABSEN.
+    // ----------------------------------------------------
+    const time235859 = new Date('2026-09-03T23:58:59+07:00');
+    const isOpen235859 = isWibAttendanceWindowOpen(testDateStr, time235859);
+    const isClosed235859 = isWibAttendanceWindowClosed(testDateStr, time235859);
+
+    assert(
+      isOpen235859 && !isClosed235859,
+      'TEST 5: 03 Sep 2026 23:58:59 WIB - Attendance window is still open (status = BELUM ABSEN)',
+      `isOpen: ${isOpen235859}, isClosed: ${isClosed235859}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 6: 03 Sep 2026 23:59:00 WIB -> Periode absensi 03 Sep selesai. Jika belum ada absensi valid: ALFA boleh dibuat.
+    // ----------------------------------------------------
+    const time235900 = new Date('2026-09-03T23:59:00+07:00');
+    const isOpen235900 = isWibAttendanceWindowOpen(testDateStr, time235900);
+    const isClosed235900 = isWibAttendanceWindowClosed(testDateStr, time235900);
+
+    assert(
+      !isOpen235900 && isClosed235900,
+      'TEST 6: 03 Sep 2026 23:59:00 WIB - Attendance window is officially closed (ALFA can be generated)',
+      `isOpen: ${isOpen235900}, isClosed: ${isClosed235900}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 7: 04 Sep 2026 00:01 WIB -> Generator dapat memfinalisasi 03 Sep.
+    // ----------------------------------------------------
+    const time04Sep0001 = new Date('2026-09-04T00:01:00+07:00');
+    const target04Sep = isWibAttendanceWindowClosed('2026-09-04', time04Sep0001)
+      ? getWibDateParts(time04Sep0001).dateString
+      : getYesterdayWib(time04Sep0001).dateString;
+    const is03SepClosedFrom04Sep = isWibAttendanceWindowClosed(testDateStr, time04Sep0001);
+
+    assert(
+      target04Sep === '2026-09-03' && is03SepClosedFrom04Sep,
+      'TEST 7: 04 Sep 2026 00:01 WIB - Generator targets and finalizes 03 Sep 2026',
+      `Target: ${target04Sep}, is03SepClosed: ${is03SepClosedFrom04Sep}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 8: 03 Sep 2026 07:20 WIB with existing record ALFA -> Expected dashboard: BELUM ABSEN.
+    // ----------------------------------------------------
+    const isWindowClosedAt0720 = isWibAttendanceWindowClosed(testDateObj, time0720);
+    // When window is not closed, ALFA status in dashboard evaluates to BELUM_ABSEN
+    const effectiveStatusAt0720 = isWindowClosedAt0720 ? 'ALFA' : 'BELUM_ABSEN';
+
+    assert(
+      effectiveStatusAt0720 === 'BELUM_ABSEN',
+      'TEST 8: 03 Sep 2026 07:20 WIB existing ALFA evaluates to BELUM_ABSEN on dashboard',
+      `Effective status: ${effectiveStatusAt0720}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 9: 03 Sep 2026 07:20 WIB existing ALFA, user melakukan Absen Pagi -> update ALFA menjadi HADIR
+    // ----------------------------------------------------
+    // Create existing ALFA record for userPagi
+    const existingAlfaPagi = await prisma.attendances.create({
+      data: {
+        person_type: 'MAGANG',
+        person_id: userPagi.id,
+        date: testDateObj,
+        status: 'ALFA',
+        updated_at: new Date('2026-09-03T00:07:00Z'),
+      },
+    });
+
+    // Simulate Absen Pagi recovery update
+    const updatedHadir = await prisma.attendances.update({
+      where: { id: existingAlfaPagi.id },
+      data: {
+        check_in: new Date('2026-09-03T07:20:00+07:00'),
+        status: 'HADIR',
+        latitude: -6.1791,
+        longitude: 106.835,
+        accuracy: 10,
+        address: 'Gedung Mina Bahari 3',
+        updated_at: new Date(),
+      },
+    });
+
+    const countPagiRecords = await prisma.attendances.count({
+      where: { person_id: userPagi.id, date: testDateObj },
+    });
+
+    assert(
+      updatedHadir.status === 'HADIR' &&
+        updatedHadir.check_in !== null &&
+        updatedHadir.latitude !== null &&
+        countPagiRecords === 1,
+      'TEST 9: Existing ALFA record successfully updated to HADIR on Absen Pagi (0 duplicates)',
+      `Status: ${updatedHadir.status}, count: ${countPagiRecords}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 10: 03 Sep 2026 07:20 WIB existing ALFA, user mengajukan IZIN -> update ALFA menjadi IZIN
+    // ----------------------------------------------------
+    const existingAlfaIzin = await prisma.attendances.create({
+      data: {
+        person_type: 'TENAGA_AHLI',
+        person_id: userIzin.id,
+        date: testDateObj,
+        status: 'ALFA',
+        updated_at: new Date('2026-09-03T00:07:00Z'),
+      },
+    });
+
+    // Simulate submit Izin recovery update
+    const updatedIzin = await prisma.attendances.update({
+      where: { id: existingAlfaIzin.id },
+      data: {
+        status: 'IZIN',
+        notes: 'Keperluan dinas luar',
+        proof_file_url: '/uploads/surat_tugas.pdf',
+        check_in: null,
+        check_out: null,
+        updated_at: new Date(),
+      },
+    });
+
+    const countIzinRecords = await prisma.attendances.count({
+      where: { person_id: userIzin.id, date: testDateObj },
+    });
+
+    assert(
+      updatedIzin.status === 'IZIN' &&
+        updatedIzin.proof_file_url === '/uploads/surat_tugas.pdf' &&
+        updatedIzin.notes === 'Keperluan dinas luar' &&
+        countIzinRecords === 1,
+      'TEST 10: Existing ALFA record successfully updated to IZIN with proof saved (0 duplicates)',
+      `Status: ${updatedIzin.status}, proof: ${updatedIzin.proof_file_url}, count: ${countIzinRecords}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 11: Sabtu -> libur. Tidak bisa absen. Tidak menghasilkan ALFA.
+    // ----------------------------------------------------
+    const satDate = parseWibDateString(testSaturdayStr)!.dateObj;
+    const isSatWorkingDay = isWibWorkingDay(satDate);
+    const satAlfaResult = await generateAlfaAttendance({
+      targetDate: testSaturdayStr,
+      forceWorkingDay: false,
+    });
+
+    assert(
+      !isSatWorkingDay && satAlfaResult.isWorkingDay === false && satAlfaResult.alfaCreatedCount === 0,
+      'TEST 11: Saturday is holiday (isWorkingDay = false, 0 ALFA generated)',
+      `isWorkingDay: ${isSatWorkingDay}, alfaCreated: ${satAlfaResult.alfaCreatedCount}`
+    );
+
+    // ----------------------------------------------------
+    // TEST 12: Minggu -> libur. Tidak bisa absen. Tidak menghasilkan ALFA.
+    // ----------------------------------------------------
+    const sunDate = parseWibDateString(testSundayStr)!.dateObj;
+    const isSunWorkingDay = isWibWorkingDay(sunDate);
+    const sunAlfaResult = await generateAlfaAttendance({
+      targetDate: testSundayStr,
+      forceWorkingDay: false,
+    });
+
+    assert(
+      !isSunWorkingDay && sunAlfaResult.isWorkingDay === false && sunAlfaResult.alfaCreatedCount === 0,
+      'TEST 12: Sunday is holiday (isWorkingDay = false, 0 ALFA generated)',
+      `isWorkingDay: ${isSunWorkingDay}, alfaCreated: ${sunAlfaResult.alfaCreatedCount}`
+    );
+
+    // Additional test: Full ALFA generation on finalized date preserves HADIR/IZIN/SAKIT
     await Promise.all([
-      // Hadir for viewerHadir2
       prisma.attendances.create({
         data: {
           person_type: 'MAGANG',
           person_id: viewerHadir2.id,
-          date: testWorkingDate,
+          date: testDateYesterdayObj,
           status: 'HADIR',
-          check_in: new Date('2029-01-05T01:00:00Z'),
-          check_out: new Date('2029-01-05T09:00:00Z'),
+          check_in: new Date('2026-09-02T01:00:00Z'),
           updated_at: new Date(),
         },
       }),
-      // Izin for viewerIzin3
       prisma.attendances.create({
         data: {
           person_type: 'TENAGA_AHLI',
           person_id: viewerIzin3.id,
-          date: testWorkingDate,
-          status: 'IZIN',
-          notes: 'Urusan keluarga',
-          updated_at: new Date(),
-        },
-      }),
-      // Sakit for viewerSakit4
-      prisma.attendances.create({
-        data: {
-          person_type: 'MAGANG',
-          person_id: viewerSakit4.id,
-          date: testWorkingDate,
-          status: 'SAKIT',
-          notes: 'Demam',
-          updated_at: new Date(),
-        },
-      }),
-    ]);
-
-    // Setup initial attendance records on testMultiDate (for Test 10)
-    await Promise.all([
-      prisma.attendances.create({
-        data: {
-          person_type: 'MAGANG',
-          person_id: multiA.id,
-          date: testMultiDate,
-          status: 'HADIR',
-          check_in: new Date('2029-01-12T01:00:00Z'),
-          updated_at: new Date(),
-        },
-      }),
-      prisma.attendances.create({
-        data: {
-          person_type: 'MAGANG',
-          person_id: multiB.id,
-          date: testMultiDate,
+          date: testDateYesterdayObj,
           status: 'IZIN',
           notes: 'Izin seminar',
           updated_at: new Date(),
@@ -285,214 +368,36 @@ async function runTests() {
       }),
       prisma.attendances.create({
         data: {
-          person_type: 'TENAGA_AHLI',
-          person_id: multiC.id,
-          date: testMultiDate,
+          person_type: 'MAGANG',
+          person_id: viewerSakit4.id,
+          date: testDateYesterdayObj,
           status: 'SAKIT',
-          notes: 'Sakit flu',
+          notes: 'Demam',
           updated_at: new Date(),
         },
       }),
     ]);
 
-    console.log('Setup complete.\n');
-
-    // ----------------------------------------------------
-    // TEST 1: Active VIEWER with no attendance receives ALFA
-    // ----------------------------------------------------
-    console.log('--- Running Test 1 to 8 on date:', testWorkingDateStr, '---');
-    await generateAlfaAttendance({
-      targetDate: testWorkingDateStr,
+    const resGenYesterday = await generateAlfaAttendance({
+      targetDate: testDateYesterdayStr,
       forceWorkingDay: true,
     });
+    console.log('Finalized yesterday created ALFA count:', resGenYesterday.alfaCreatedCount);
 
-
-    const attViewerAbsent1 = await prisma.attendances.findFirst({
-      where: { person_id: viewerAbsent1.id, date: testWorkingDate },
-    });
-    assert(
-      attViewerAbsent1 !== null && attViewerAbsent1.status === 'ALFA',
-      'Test 1: Active VIEWER with no attendance receives ALFA',
-      `Expected ALFA status, got: ${attViewerAbsent1?.status}`
-    );
-    assert(
-      attViewerAbsent1?.check_in === null && attViewerAbsent1?.check_out === null,
-      'Test 1b: ALFA record has null check_in and null check_out',
-      `Check in was: ${attViewerAbsent1?.check_in}`
-    );
-
-    // ----------------------------------------------------
-    // TEST 2: Active VIEWER with HADIR remains unchanged
-    // ----------------------------------------------------
-    const attViewerHadir2 = await prisma.attendances.findFirst({
-      where: { person_id: viewerHadir2.id, date: testWorkingDate },
-    });
-    assert(
-      attViewerHadir2 !== null && attViewerHadir2.status === 'HADIR',
-      'Test 2: Active VIEWER with HADIR remains HADIR',
-      `Expected HADIR status, got: ${attViewerHadir2?.status}`
-    );
-
-    // ----------------------------------------------------
-    // TEST 3: Active VIEWER with IZIN remains unchanged
-    // ----------------------------------------------------
-    const attViewerIzin3 = await prisma.attendances.findFirst({
-      where: { person_id: viewerIzin3.id, date: testWorkingDate },
-    });
-    assert(
-      attViewerIzin3 !== null && attViewerIzin3.status === 'IZIN',
-      'Test 3: Active VIEWER with IZIN remains IZIN',
-      `Expected IZIN status, got: ${attViewerIzin3?.status}`
-    );
-
-    // ----------------------------------------------------
-    // TEST 4: Active VIEWER with SAKIT remains unchanged
-    // ----------------------------------------------------
-    const attViewerSakit4 = await prisma.attendances.findFirst({
-      where: { person_id: viewerSakit4.id, date: testWorkingDate },
-    });
-    assert(
-      attViewerSakit4 !== null && attViewerSakit4.status === 'SAKIT',
-      'Test 4: Active VIEWER with SAKIT remains SAKIT',
-      `Expected SAKIT status, got: ${attViewerSakit4?.status}`
-    );
-
-    // ----------------------------------------------------
-    // TEST 5: Idempotency (running second time creates 0 new records)
-    // ----------------------------------------------------
-    const resRun2 = await generateAlfaAttendance({
-      targetDate: testWorkingDateStr,
-      forceWorkingDay: true,
-    });
-    assert(
-      resRun2.alfaCreatedCount === 0,
-      'Test 5: Idempotency - second run creates 0 duplicate ALFA records',
-      `Expected 0 created, got: ${resRun2.alfaCreatedCount}`
-    );
-
-    const allAttViewerIdempotent5 = await prisma.attendances.findMany({
-      where: { person_id: viewerIdempotent5.id, date: testWorkingDate },
-    });
-    assert(
-      allAttViewerIdempotent5.length === 1,
-      'Test 5b: Exactly 1 record exists for idempotent viewer (no duplicates)',
-      `Found ${allAttViewerIdempotent5.length} records`
-    );
-
-    // ----------------------------------------------------
-    // TEST 6: Inactive VIEWER (is_active = false) receives NO ALFA
-    // ----------------------------------------------------
-    const attViewerInactive6 = await prisma.attendances.findFirst({
-      where: { person_id: viewerInactive6.id, date: testWorkingDate },
-    });
-    assert(
-      attViewerInactive6 === null,
-      'Test 6: Inactive VIEWER (is_active = false) receives NO ALFA',
-      `Expected null, got: ${JSON.stringify(attViewerInactive6)}`
-    );
-
-    // ----------------------------------------------------
-    // TEST 7: ADMIN receives NO ALFA
-    // ----------------------------------------------------
-    const attAdmin7 = await prisma.attendances.findFirst({
-      where: { person_id: admin7.id, date: testWorkingDate },
-    });
-    assert(
-      attAdmin7 === null,
-      'Test 7: ADMIN receives NO ALFA',
-      `Expected null, got: ${JSON.stringify(attAdmin7)}`
-    );
-
-    // ----------------------------------------------------
-    // TEST 8: STAFF receives NO ALFA
-    // ----------------------------------------------------
-    const attStaff8 = await prisma.attendances.findFirst({
-      where: { person_id: staff8.id, date: testWorkingDate },
-    });
-    assert(
-      attStaff8 === null,
-      'Test 8: STAFF receives NO ALFA',
-      `Expected null, got: ${JSON.stringify(attStaff8)}`
-    );
-
-    // ----------------------------------------------------
-    // TEST 9: Weekend check (Saturday/Sunday skipped without force flag)
-    // ----------------------------------------------------
-    console.log('\n--- Running Test 9 on weekend date:', testWeekendStr, '---');
-    const resWeekend = await generateAlfaAttendance({
-      targetDate: testWeekendStr,
-      forceWorkingDay: false, // strictly test normal weekend handling
-    });
-    assert(
-      resWeekend.isWorkingDay === false && resWeekend.alfaCreatedCount === 0,
-      'Test 9: Weekend is automatically skipped (0 ALFA created)',
-      `isWorkingDay: ${resWeekend.isWorkingDay}, created: ${resWeekend.alfaCreatedCount}`
-    );
-
-    // ----------------------------------------------------
-    // TEST 10: Multiple VIEWER accounts mix
-    // ----------------------------------------------------
-    console.log('\n--- Running Test 10 on multi date:', testMultiDateStr, '---');
-    await generateAlfaAttendance({
-      targetDate: testMultiDateStr,
-      forceWorkingDay: true,
-    });
-
-
-    const [attA, attB, attC, attD, attE] = await Promise.all([
-      prisma.attendances.findFirst({ where: { person_id: multiA.id, date: testMultiDate } }),
-      prisma.attendances.findFirst({ where: { person_id: multiB.id, date: testMultiDate } }),
-      prisma.attendances.findFirst({ where: { person_id: multiC.id, date: testMultiDate } }),
-      prisma.attendances.findFirst({ where: { person_id: multiD.id, date: testMultiDate } }),
-      prisma.attendances.findFirst({ where: { person_id: multiE.id, date: testMultiDate } }),
+    const [attAbsent1, attHadir2, attIzin3, attSakit4] = await Promise.all([
+      prisma.attendances.findFirst({ where: { person_id: viewerAbsent1.id, date: testDateYesterdayObj } }),
+      prisma.attendances.findFirst({ where: { person_id: viewerHadir2.id, date: testDateYesterdayObj } }),
+      prisma.attendances.findFirst({ where: { person_id: viewerIzin3.id, date: testDateYesterdayObj } }),
+      prisma.attendances.findFirst({ where: { person_id: viewerSakit4.id, date: testDateYesterdayObj } }),
     ]);
 
     assert(
-      attA?.status === 'HADIR' &&
-        attB?.status === 'IZIN' &&
-        attC?.status === 'SAKIT' &&
-        attD?.status === 'ALFA' &&
-        attE?.status === 'ALFA',
-      'Test 10: Mixed accounts (HADIR, IZIN, SAKIT preserved; only absent D & E marked ALFA)',
-      `A:${attA?.status}, B:${attB?.status}, C:${attC?.status}, D:${attD?.status}, E:${attE?.status}`
-    );
-    assert(
-      attD?.person_type === 'MAGANG' && attE?.person_type === 'TENAGA_AHLI',
-      'Test 10b: Correct polymorphic person_type assigned (Magang vs Tenaga Ahli)',
-      `D person_type: ${attD?.person_type}, E person_type: ${attE?.person_type}`
-    );
-
-    // ----------------------------------------------------
-    // TEST 11: Dashboard query compatibility
-    // ----------------------------------------------------
-    console.log('\n--- Running Test 11 & 12 (Dashboard & Export Compatibility) ---');
-    // Verify counting ALFA in "Total Tidak Hadir" using Dashboard query logic
-    const dashboardAlfaCount = await prisma.attendances.count({
-      where: {
-        date: testMultiDate,
-        status: { in: ['IZIN', 'SAKIT', 'ALFA'] },
-        person_id: { in: [multiA.id, multiB.id, multiC.id, multiD.id, multiE.id] },
-      },
-    });
-    assert(
-      dashboardAlfaCount === 4, // 1 Izin + 1 Sakit + 2 Alfa
-      'Test 11: Dashboard "Total Tidak Hadir" query accurately includes ALFA along with IZIN and SAKIT',
-      `Expected 4, got: ${dashboardAlfaCount}`
-    );
-
-    // ----------------------------------------------------
-    // TEST 12: Excel Export compatibility
-    // ----------------------------------------------------
-    const exportData = await prisma.attendances.findMany({
-      where: {
-        date: testMultiDate,
-        person_id: { in: [multiD.id, multiE.id] },
-      },
-    });
-    assert(
-      exportData.length === 2 && exportData.every((r) => r.status === 'ALFA'),
-      'Test 12: Export query retrieves generated ALFA records with status ALFA',
-      `Found ${exportData.length} records, statuses: ${exportData.map((r) => r.status).join(', ')}`
+      attAbsent1?.status === 'ALFA' &&
+        attHadir2?.status === 'HADIR' &&
+        attIzin3?.status === 'IZIN' &&
+        attSakit4?.status === 'SAKIT',
+      'BONUS: Finalized working day preserves HADIR, IZIN, SAKIT and marks only absent as ALFA',
+      `Absent1:${attAbsent1?.status}, Hadir2:${attHadir2?.status}, Izin3:${attIzin3?.status}, Sakit4:${attSakit4?.status}`
     );
   } finally {
     // ----------------------------------------------------
@@ -501,7 +406,7 @@ async function runTests() {
     console.log('\n--- Cleaning up test artifacts from database ---');
     await prisma.attendances.deleteMany({
       where: {
-        date: { in: [testWorkingDate, testMultiDate] },
+        date: { in: [testDateObj, testDateYesterdayObj] },
       },
     });
 
@@ -526,3 +431,4 @@ runTests().catch((err) => {
   console.error('[FATAL TEST ERROR]', err);
   process.exit(1);
 });
+

@@ -5,16 +5,23 @@ import { useState, useEffect } from 'react';
 interface LiveClockCardProps {
   initialDateFormatted: string;
   initialTimeFormatted: string;
+  isDevTimeOverride?: boolean;
 }
 
 export default function LiveClockCard({
   initialDateFormatted,
   initialTimeFormatted,
+  isDevTimeOverride = false,
 }: LiveClockCardProps) {
   const [timeFormatted, setTimeFormatted] = useState(initialTimeFormatted);
   const [dateFormatted, setDateFormatted] = useState(initialDateFormatted);
 
   useEffect(() => {
+    // When DEV_TIME_OVERRIDE is active in development, keep the consistent simulated time
+    if (isDevTimeOverride) {
+      return;
+    }
+
     const updateClock = () => {
       const now = new Date();
       const timeStr =
@@ -40,7 +47,10 @@ export default function LiveClockCard({
 
     const interval = setInterval(updateClock, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isDevTimeOverride]);
+
+  const displayTime = isDevTimeOverride ? initialTimeFormatted : timeFormatted;
+  const displayDate = isDevTimeOverride ? initialDateFormatted : dateFormatted;
 
   return (
     <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center relative overflow-hidden">
@@ -52,11 +62,11 @@ export default function LiveClockCard({
       </span>
 
       <h1 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight text-[#006194] my-1">
-        {timeFormatted}
+        {displayTime}
       </h1>
 
       <p className="text-sm sm:text-base font-medium text-slate-700 mt-1">
-        {dateFormatted}
+        {displayDate}
       </p>
 
       <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/60 text-xs text-slate-600 font-medium">

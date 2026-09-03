@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { logoutAction } from '@/app/actions/auth';
 import BottomNav from '@/components/layout/BottomNav';
+import { getWibDateParts } from '@/lib/time';
 
 export const metadata: Metadata = {
   title: 'Dashboard Absensi - P3K MagangHub & Tenaga Ahli',
@@ -96,7 +97,7 @@ export default function DashboardLayout({
       <footer className="border-t border-slate-200/80 bg-white py-5 mt-auto text-center hidden sm:block">
         <div className="max-w-4xl mx-auto px-4">
           <p className="text-xs text-slate-500">
-            Unit P3K &copy; {new Date().getFullYear()} &bull; Sistem Absensi Internal Kementerian Kelautan dan Perikanan
+            Unit P3K &copy; {getWibDateParts().year} &bull; Sistem Absensi Internal Kementerian Kelautan dan Perikanan
           </p>
         </div>
       </footer>

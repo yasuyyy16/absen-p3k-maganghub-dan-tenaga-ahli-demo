@@ -10,6 +10,8 @@ import {
   formatWibTime,
   isReminderActive,
   getWibDayOfWeek,
+  isWibAttendanceWindowClosed,
+  isDevTimeOverrideActive,
 } from '@/lib/time';
 import { PersonDetails, PersonnelType } from '@/lib/types';
 import UserProfileCard from '@/components/dashboard/UserProfileCard';
@@ -73,6 +75,9 @@ export default async function DashboardPage() {
     },
   });
 
+  // Check if the attendance window for today has closed (>= 23:59:00 WIB)
+  const isWindowClosed = isWibAttendanceWindowClosed(todayParts.dateObj, now);
+
   // Determine current attendance state
   let currentBadgeStatus: 'BELUM_ABSEN' | 'SUDAH_PAGI' | 'LENGKAP' | 'IZIN' | 'SAKIT' | 'ALFA' = 'BELUM_ABSEN';
   let isCheckedIn = false;
@@ -110,7 +115,12 @@ export default async function DashboardPage() {
       leaveNotes = todayAttendance.notes;
       proofFileUrl = resolveProofUrl(todayAttendance.proof_file_url);
     } else if (todayAttendance.status === 'ALFA') {
-      currentBadgeStatus = 'ALFA';
+      // If the attendance window is still open (< 23:59:00 WIB), treat as BELUM_ABSEN
+      if (isWindowClosed) {
+        currentBadgeStatus = 'ALFA';
+      } else {
+        currentBadgeStatus = 'BELUM_ABSEN';
+      }
     }
   }
 
@@ -121,7 +131,8 @@ export default async function DashboardPage() {
     todayAttendance?.status ?? ''
   );
   const isCompleted = isCheckedIn && isCheckedOut;
-  const isNotRecorded = !todayAttendance;
+  // If no record exists OR if existing record is a premature ALFA while window is still open:
+  const isNotRecorded = !todayAttendance || (todayAttendance.status === 'ALFA' && !isWindowClosed);
   const canConvertToLeave = isCheckedIn && !isCheckedOut;
 
   const hasLocationData =
@@ -183,6 +194,7 @@ export default async function DashboardPage() {
       <LiveClockCard
         initialDateFormatted={dateFormattedLong}
         initialTimeFormatted={timeParts.timeFormatted}
+        isDevTimeOverride={isDevTimeOverrideActive()}
       />
 
       {/* Late Checkout Reminder Banner */}
@@ -231,6 +243,7 @@ export default async function DashboardPage() {
             checkInTimeFormatted={checkInTimeFormatted}
             isLeave={false}
             isWeekend={isWeekend}
+            isWindowClosed={isWindowClosed}
           />
 
           <AbsenPulangCard

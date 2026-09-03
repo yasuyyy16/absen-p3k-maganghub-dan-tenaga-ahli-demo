@@ -16,6 +16,17 @@ export function getNowWib(): Date {
 }
 
 /**
+ * Checks whether DEV_TIME_OVERRIDE is actively set in a non-production environment.
+ */
+export function isDevTimeOverrideActive(): boolean {
+  if (process.env.NODE_ENV !== 'production' && process.env.DEV_TIME_OVERRIDE) {
+    const parsed = new Date(process.env.DEV_TIME_OVERRIDE);
+    return !isNaN(parsed.getTime());
+  }
+  return false;
+}
+
+/**
  * Extracts year, month, day, dateString ('YYYY-MM-DD') and a normalized UTC midnight Date object
  * corresponding to the calendar date in Asia/Jakarta timezone.
  *
@@ -221,4 +232,72 @@ export function parseWibDateString(dateStr: string): WibDateParts | null {
     dateObj,
   };
 }
+
+/**
+ * Returns WibDateParts for the previous calendar day (yesterday) in WIB timezone.
+ */
+export function getYesterdayWib(date: Date = getNowWib()): WibDateParts {
+  const todayParts = getWibDateParts(date);
+  const prevDate = new Date(Date.UTC(todayParts.year, todayParts.month - 1, todayParts.day - 1, 0, 0, 0, 0));
+  return getWibDateParts(prevDate);
+}
+
+/**
+ * Checks whether the daily attendance window (00:01:00 – 23:58:59 WIB) is actively open for a given target date.
+ */
+export function isWibAttendanceWindowOpen(
+  targetDate: Date | string = getNowWib(),
+  now: Date = getNowWib()
+): boolean {
+  const targetParts = typeof targetDate === 'string'
+    ? parseWibDateString(targetDate)
+    : getWibDateParts(targetDate);
+
+  if (!targetParts) return false;
+
+  const todayParts = getWibDateParts(now);
+  if (targetParts.dateString !== todayParts.dateString) {
+    return false;
+  }
+
+  const time = getWibTimeParts(now);
+  const isAfterStart = time.hours > 0 || (time.hours === 0 && time.minutes >= 1);
+  const isBeforeEnd = time.hours < 23 || (time.hours === 23 && time.minutes < 59);
+
+  return isAfterStart && isBeforeEnd;
+}
+
+/**
+ * Checks whether the daily attendance window has closed for a given target date in WIB timezone.
+ *
+ * Rules:
+ * - Past dates (< today in WIB): returns true (closed).
+ * - Future dates (> today in WIB): returns false (not closed).
+ * - Today (in WIB): returns false if current WIB time < 23:59:00, returns true once >= 23:59:00.
+ */
+export function isWibAttendanceWindowClosed(
+  targetDate: Date | string = getNowWib(),
+  now: Date = getNowWib()
+): boolean {
+  const targetParts = typeof targetDate === 'string'
+    ? parseWibDateString(targetDate)
+    : getWibDateParts(targetDate);
+
+  if (!targetParts) return false;
+
+  const todayParts = getWibDateParts(now);
+
+  if (targetParts.dateString < todayParts.dateString) {
+    return true;
+  }
+
+  if (targetParts.dateString > todayParts.dateString) {
+    return false;
+  }
+
+  // Same day: closed only once time reaches 23:59:00 WIB
+  const time = getWibTimeParts(now);
+  return time.hours === 23 && time.minutes === 59;
+}
+
 

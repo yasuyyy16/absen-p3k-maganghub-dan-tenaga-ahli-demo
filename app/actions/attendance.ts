@@ -9,6 +9,8 @@ import {
   getWibDateParts,
   formatWibTime,
   getWibDayOfWeek,
+  isWibAttendanceWindowClosed,
+  isWibAttendanceWindowOpen,
 } from '@/lib/time';
 import { LocationPayload, PersonnelType } from '@/lib/types';
 import { isValidCoordinates, reverseGeocode, isWithinAttendanceRadius } from '@/lib/location';
@@ -20,6 +22,16 @@ export interface AttendanceActionResult {
   message: string;
   checkInFormatted?: string;
   checkOutFormatted?: string;
+}
+
+function safeRevalidatePaths(...paths: string[]) {
+  try {
+    for (const path of paths) {
+      revalidatePath(path);
+    }
+  } catch {
+    // Graceful fallback when executed outside Next.js request context (e.g. tests)
+  }
 }
 
 /**
@@ -63,6 +75,22 @@ export async function absenPagiAction(
   const today = getWibDateParts(now);
   const dayOfWeek = getWibDayOfWeek(now);
 
+  // Reject attendance if daily window is closed (>= 23:59:00 WIB)
+  if (isWibAttendanceWindowClosed(today.dateObj, now)) {
+    return {
+      success: false,
+      message: 'Waktu absensi hari ini telah berakhir. Absen Pagi tidak dapat dilakukan setelah pukul 23:58 WIB.',
+    };
+  }
+
+  // Reject attendance if daily window is not yet open (< 00:01:00 WIB)
+  if (!isWibAttendanceWindowOpen(today.dateObj, now)) {
+    return {
+      success: false,
+      message: 'Periode absensi harian belum dimulai. Absensi dimulai pukul 00:01 WIB.',
+    };
+  }
+
   // Reject attendance on Saturday (6) and Sunday (0)
   if (dayOfWeek === 6 || dayOfWeek === 0) {
     return {
@@ -91,9 +119,41 @@ export async function absenPagiAction(
     });
 
     if (existing) {
+      if (existing.status === 'HADIR') {
+        return {
+          success: false,
+          message: 'Kamu sudah absen pagi hari ini',
+        };
+      }
+      if (existing.status === 'IZIN' || existing.status === 'SAKIT') {
+        return {
+          success: false,
+          message: `Data absensi hari ini sudah tercatat sebagai ${existing.status === 'IZIN' ? 'Izin' : 'Sakit'}.`,
+        };
+      }
+
+      // If existing record has status 'ALFA' (e.g. premature ALFA during ongoing window), update it to HADIR
+      const address = await reverseGeocode(location.latitude, location.longitude);
+
+      const updatedRecord = await prisma.attendances.update({
+        where: { id: existing.id },
+        data: {
+          check_in: now,
+          status: 'HADIR',
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracy: location.accuracy ?? null,
+          address: address,
+          updated_at: now,
+        },
+      });
+
+      safeRevalidatePaths('/absensi', '/absensi/riwayat');
+
       return {
-        success: false,
-        message: 'Kamu sudah absen pagi hari ini',
+        success: true,
+        message: 'Absen pagi berhasil dicatat.',
+        checkInFormatted: formatWibTime(updatedRecord.check_in ?? now),
       };
     }
 
@@ -115,8 +175,7 @@ export async function absenPagiAction(
       },
     });
 
-    revalidatePath('/absensi');
-    revalidatePath('/absensi/riwayat');
+    safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
     return {
       success: true,
@@ -238,8 +297,7 @@ export async function absenPulangAction(
       },
     });
 
-    revalidatePath('/absensi');
-    revalidatePath('/absensi/riwayat');
+    safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
     return {
       success: true,
@@ -341,9 +399,47 @@ export async function submitIzinSakitAction(
     });
 
     if (existing) {
+      if (existing.status === 'HADIR') {
+        return {
+          success: false,
+          message: 'Data absensi hari ini sudah tercatat. Pengajuan tidak dapat diproses.',
+        };
+      }
+      if (existing.status === 'IZIN' || existing.status === 'SAKIT') {
+        return {
+          success: false,
+          message: `Pengajuan ${existing.status === 'IZIN' ? 'Izin' : 'Sakit'} hari ini sudah tercatat.`,
+        };
+      }
+
+      // If existing record has status 'ALFA' (e.g. premature ALFA), update it to IZIN or SAKIT
+      const proofUrl = await uploadAttendanceProof(proofFile);
+
+      await prisma.attendances.update({
+        where: { id: existing.id },
+        data: {
+          status: rawStatus,
+          notes: notes,
+          proof_file_url: proofUrl,
+          check_in: null,
+          check_out: null,
+          latitude: null,
+          longitude: null,
+          accuracy: null,
+          address: null,
+          latitude_out: null,
+          longitude_out: null,
+          accuracy_out: null,
+          address_out: null,
+          updated_at: now,
+        },
+      });
+
+      safeRevalidatePaths('/absensi', '/absensi/riwayat');
+
       return {
-        success: false,
-        message: 'Data absensi hari ini sudah tercatat. Pengajuan tidak dapat diproses.',
+        success: true,
+        message: `Pengajuan ${rawStatus === 'IZIN' ? 'Izin' : 'Sakit'} berhasil dicatat.`,
       };
     }
 
@@ -363,8 +459,7 @@ export async function submitIzinSakitAction(
       },
     });
 
-    revalidatePath('/absensi');
-    revalidatePath('/absensi/riwayat');
+    safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
     return {
       success: true,
@@ -511,8 +606,7 @@ export async function ubahKeIzinSakitAction(
       },
     });
 
-    revalidatePath('/absensi');
-    revalidatePath('/absensi/riwayat');
+    safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
     return {
       success: true,
