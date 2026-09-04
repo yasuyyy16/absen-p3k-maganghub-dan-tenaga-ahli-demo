@@ -288,7 +288,11 @@ Konfigurasi saat ini:
 }
 ```
 
-Cron menggunakan timezone UTC. Pastikan jadwal cron disesuaikan dengan timezone dan kebutuhan operasional aplikasi.
+Cron menggunakan timezone UTC. Jadwal `59 16 * * 1-5` setara dengan pukul 23:59 WIB setiap Senin–Jumat.
+
+Endpoint cron ini menjalankan dua fungsi otomatis sekaligus:
+1. **Pembuatan absensi ALFA otomatis** untuk pengguna aktif yang belum presensi pada hari kerja yang telah ditutup.
+2. **Pembersihan bukti izin/sakit kadaluarsa (Retensi 5 Hari)**: menghapus file fisik di `public/uploads/proofs/` yang absensinya sudah $> 5$ hari kalender (WIB). Record absensi di database tetap dipertahankan.
 
 Endpoint cron:
 
@@ -297,7 +301,21 @@ GET /api/cron/alfa
 POST /api/cron/alfa
 ```
 
-Endpoint membutuhkan `CRON_SECRET`.
+Endpoint dilindungi menggunakan `CRON_SECRET`.
+
+### 🐧 Scheduler untuk Deployment VPS / PaaS / Docker (Non-Vercel)
+
+Jika aplikasi di-deploy di VPS (Ubuntu/Debian) atau PaaS tanpa dukungan native Vercel Cron, gunakan cron Linux atau scheduler internal. **Jangan membuat scheduler kedua**, cukup trigger endpoint yang sama:
+
+Contoh konfigurasi `crontab -e`:
+
+```bash
+# Jalankan setiap hari kerja Senin-Jumat pukul 23:59 WIB (Asia/Jakarta)
+59 23 * * 1-5 curl -fsS -X POST -H "Authorization: Bearer <CRON_SECRET>" http://localhost:3000/api/cron/alfa > /dev/null 2>&1
+```
+
+Atau menggunakan systemd timer dengan curl serupa.
+
 
 ## 🔒 Keamanan
 

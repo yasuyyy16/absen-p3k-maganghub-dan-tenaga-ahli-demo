@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAlfaAttendance } from '@/lib/attendance/alfa';
+import { cleanupExpiredProofs } from '@/lib/attendance/cleanup';
 
 /**
  * Validates whether the incoming cron request has valid authorization.
@@ -50,17 +51,23 @@ export async function GET(request: NextRequest) {
   const targetDate = searchParams.get('date') || undefined;
   const forceParam = searchParams.get('force') === 'true';
 
-  const result = await generateAlfaAttendance({
+  const alfaResult = await generateAlfaAttendance({
     targetDate,
     forceWorkingDay: forceParam,
   });
 
-  if (!result.success) {
+  const cleanupDate = searchParams.get('cleanupDate') || undefined;
+  const cleanupResult = await cleanupExpiredProofs({
+    referenceDate: cleanupDate,
+  });
+
+  if (!alfaResult.success) {
     return NextResponse.json(
       {
         success: false,
         message: 'Gagal menjalankan pembuatan absensi ALFA.',
-        error: result.error,
+        error: alfaResult.error,
+        proofCleanup: cleanupResult,
       },
       { status: 500 }
     );
@@ -69,8 +76,11 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(
     {
       success: true,
-      message: 'Proses absensi ALFA otomatis selesai.',
-      data: result,
+      message: 'Proses absensi ALFA otomatis dan pembersihan bukti kadaluarsa selesai.',
+      data: {
+        alfa: alfaResult,
+        proofCleanup: cleanupResult,
+      },
     },
     { status: 200 }
   );
@@ -89,6 +99,7 @@ export async function POST(request: NextRequest) {
 
   let targetDate: string | undefined;
   let forceParam = false;
+  let cleanupDate: string | undefined;
 
   try {
     const body = await request.json();
@@ -99,25 +110,34 @@ export async function POST(request: NextRequest) {
       if (typeof body.force === 'boolean') {
         forceParam = body.force;
       }
+      if (typeof body.cleanupDate === 'string') {
+        cleanupDate = body.cleanupDate;
+      }
     }
   } catch {
     // If no JSON body, fallback to query params
     const { searchParams } = new URL(request.url);
     targetDate = searchParams.get('date') || undefined;
     forceParam = searchParams.get('force') === 'true';
+    cleanupDate = searchParams.get('cleanupDate') || undefined;
   }
 
-  const result = await generateAlfaAttendance({
+  const alfaResult = await generateAlfaAttendance({
     targetDate,
     forceWorkingDay: forceParam,
   });
 
-  if (!result.success) {
+  const cleanupResult = await cleanupExpiredProofs({
+    referenceDate: cleanupDate,
+  });
+
+  if (!alfaResult.success) {
     return NextResponse.json(
       {
         success: false,
         message: 'Gagal menjalankan pembuatan absensi ALFA.',
-        error: result.error,
+        error: alfaResult.error,
+        proofCleanup: cleanupResult,
       },
       { status: 500 }
     );
@@ -126,9 +146,13 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(
     {
       success: true,
-      message: 'Proses absensi ALFA otomatis selesai.',
-      data: result,
+      message: 'Proses absensi ALFA otomatis dan pembersihan bukti kadaluarsa selesai.',
+      data: {
+        alfa: alfaResult,
+        proofCleanup: cleanupResult,
+      },
     },
     { status: 200 }
   );
 }
+
