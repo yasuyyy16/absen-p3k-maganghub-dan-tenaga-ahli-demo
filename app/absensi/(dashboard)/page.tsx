@@ -245,6 +245,7 @@ export default async function DashboardPage() {
         isLeave={isLeave}
         isWeekend={isWeekend}
         isWindowClosed={isWindowClosed}
+        isFriday={isFriday}
         todayAttendance={todayAttendance}
       />
 

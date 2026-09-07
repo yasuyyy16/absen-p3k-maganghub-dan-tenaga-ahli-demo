@@ -48,14 +48,6 @@ export async function absenPagiAction(
     };
   }
 
-  // Validate GPS coordinates from client
-  if (!location || !isValidCoordinates(location.latitude, location.longitude)) {
-    return {
-      success: false,
-      message: 'Lokasi GPS diperlukan untuk melakukan absen pagi. Pastikan izin lokasi diaktifkan pada browser.',
-    };
-  }
-
   // Fetch authenticated user to ensure active status and derive personType
   const user = await prisma.users.findUnique({
     where: { id: session.userId },
@@ -74,6 +66,7 @@ export async function absenPagiAction(
   const now = getNowWib();
   const today = getWibDateParts(now);
   const dayOfWeek = getWibDayOfWeek(now);
+  const isFriday = dayOfWeek === 5;
 
   // Reject attendance if daily window is closed (>= 23:59:00 WIB)
   if (isWibAttendanceWindowClosed(today.dateObj, now)) {
@@ -99,8 +92,21 @@ export async function absenPagiAction(
     };
   }
 
-  // Apply location restriction for Monday-Thursday (1, 2, 3, 4)
-  if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+  // GPS & Radius Validation:
+  // Friday is WFA: GPS is optional, and geofence validation is bypassed.
+  // Monday-Thursday (1, 2, 3, 4): GPS coordinates are strictly required and radius check is enforced.
+  const hasValidGps = Boolean(
+    location && isValidCoordinates(location.latitude, location.longitude)
+  );
+
+  if (!isFriday) {
+    if (!hasValidGps || !location) {
+      return {
+        success: false,
+        message: 'Lokasi GPS diperlukan untuk melakukan absen pagi. Pastikan izin lokasi diaktifkan pada browser.',
+      };
+    }
+
     if (!isWithinAttendanceRadius(location.latitude, location.longitude)) {
       return {
         success: false,
@@ -133,16 +139,18 @@ export async function absenPagiAction(
       }
 
       // If existing record has status 'ALFA' (e.g. premature ALFA during ongoing window), update it to HADIR
-      const address = await reverseGeocode(location.latitude, location.longitude);
+      const address = hasValidGps && location
+        ? await reverseGeocode(location.latitude, location.longitude)
+        : null;
 
       const updatedRecord = await prisma.attendances.update({
         where: { id: existing.id },
         data: {
           check_in: now,
           status: 'HADIR',
-          latitude: location.latitude,
-          longitude: location.longitude,
-          accuracy: location.accuracy ?? null,
+          latitude: hasValidGps && location ? location.latitude : null,
+          longitude: hasValidGps && location ? location.longitude : null,
+          accuracy: hasValidGps && location ? (location.accuracy ?? null) : null,
           address: address,
           updated_at: now,
         },
@@ -158,7 +166,9 @@ export async function absenPagiAction(
     }
 
     // Reverse geocode to get human-readable address (graceful fallback to null)
-    const address = await reverseGeocode(location.latitude, location.longitude);
+    const address = hasValidGps && location
+      ? await reverseGeocode(location.latitude, location.longitude)
+      : null;
 
     const newRecord = await prisma.attendances.create({
       data: {
@@ -167,9 +177,9 @@ export async function absenPagiAction(
         date: today.dateObj,
         check_in: now,
         status: 'HADIR',
-        latitude: location.latitude,
-        longitude: location.longitude,
-        accuracy: location.accuracy ?? null,
+        latitude: hasValidGps && location ? location.latitude : null,
+        longitude: hasValidGps && location ? location.longitude : null,
+        accuracy: hasValidGps && location ? (location.accuracy ?? null) : null,
         address: address,
         updated_at: now,
       },
@@ -215,13 +225,6 @@ export async function absenPulangAction(
     };
   }
 
-  // Validate GPS coordinates from client
-  if (!location || !isValidCoordinates(location.latitude, location.longitude)) {
-    return {
-      success: false,
-      message: 'Lokasi GPS diperlukan untuk melakukan absen pulang. Pastikan izin lokasi diaktifkan pada browser.',
-    };
-  }
 
   // Verify active user
   const user = await prisma.users.findUnique({
@@ -238,6 +241,7 @@ export async function absenPulangAction(
   const now = getNowWib();
   const today = getWibDateParts(now);
   const dayOfWeek = getWibDayOfWeek(now);
+  const isFriday = dayOfWeek === 5;
 
   // Reject attendance on Saturday (6) and Sunday (0)
   if (dayOfWeek === 6 || dayOfWeek === 0) {
@@ -247,8 +251,21 @@ export async function absenPulangAction(
     };
   }
 
-  // Apply location restriction for Monday-Thursday (1, 2, 3, 4)
-  if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+  // GPS & Radius Validation:
+  // Friday is WFA: GPS is optional, and geofence validation is bypassed.
+  // Monday-Thursday (1, 2, 3, 4): GPS coordinates are strictly required and radius check is enforced.
+  const hasValidGps = Boolean(
+    location && isValidCoordinates(location.latitude, location.longitude)
+  );
+
+  if (!isFriday) {
+    if (!hasValidGps || !location) {
+      return {
+        success: false,
+        message: 'Lokasi GPS diperlukan untuk melakukan absen pulang. Pastikan izin lokasi diaktifkan pada browser.',
+      };
+    }
+
     if (!isWithinAttendanceRadius(location.latitude, location.longitude)) {
       return {
         success: false,
@@ -280,8 +297,10 @@ export async function absenPulangAction(
       };
     }
 
-    // Reverse geocode checkout location
-    const addressOut = await reverseGeocode(location.latitude, location.longitude);
+    // Reverse geocode checkout location (graceful fallback to null)
+    const addressOut = hasValidGps && location
+      ? await reverseGeocode(location.latitude, location.longitude)
+      : null;
 
     const updated = await prisma.attendances.update({
       where: {
@@ -289,9 +308,9 @@ export async function absenPulangAction(
       },
       data: {
         check_out: now,
-        latitude_out: location.latitude,
-        longitude_out: location.longitude,
-        accuracy_out: location.accuracy ?? null,
+        latitude_out: hasValidGps && location ? location.latitude : null,
+        longitude_out: hasValidGps && location ? location.longitude : null,
+        accuracy_out: hasValidGps && location ? (location.accuracy ?? null) : null,
         address_out: addressOut,
         updated_at: now,
       },

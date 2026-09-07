@@ -26,6 +26,7 @@ interface AttendanceLocationCardProps {
   longitudeOut?: number | null;
   accuracyOut?: number | null;
   addressOut?: string | null;
+  isFriday?: boolean;
   liveLatitude?: number | null;
   liveLongitude?: number | null;
   liveAccuracy?: number | null;
@@ -42,6 +43,7 @@ export default function AttendanceLocationCard({
   longitudeOut,
   accuracyOut,
   addressOut,
+  isFriday = false,
   liveLatitude,
   liveLongitude,
   liveAccuracy,
@@ -214,6 +216,15 @@ export default function AttendanceLocationCard({
             </div>
           </div>
         </>
+      ) : isFriday && !hasSelectedLocation ? (
+        <div className="p-6 bg-emerald-50/60 border border-dashed border-emerald-200 rounded-xl text-center space-y-1 text-emerald-800">
+          <p className="text-xs sm:text-sm font-semibold">
+            Hari Jumat — WFH (Bebas Lokasi)
+          </p>
+          <p className="text-xs text-emerald-700/90">
+            Presensi hari Jumat tidak memerlukan pencatatan lokasi GPS.
+          </p>
+        </div>
       ) : showLive && !isLiveLoading ? (
         <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center space-y-1 text-slate-500">
           <p className="text-xs sm:text-sm font-medium">

@@ -12,6 +12,7 @@ interface AbsenPulangCardProps {
   checkOutTimeFormatted: string | null;
   isLeave: boolean;
   isWeekend?: boolean;
+  isFriday?: boolean;
   liveLocation?: LocationPayload | null;
   liveError?: string | null;
 }
@@ -22,6 +23,7 @@ export default function AbsenPulangCard({
   checkOutTimeFormatted,
   isLeave,
   isWeekend = false,
+  isFriday = false,
   liveLocation,
 }: AbsenPulangCardProps) {
   const [isPending, startTransition] = useTransition();
@@ -46,6 +48,21 @@ export default function AbsenPulangCard({
 
   const handleConfirmAbsenPulang = async () => {
     setFeedback(null);
+
+    // On Friday WFA, GPS is not requested and not enforced
+    if (isFriday) {
+      startTransition(async () => {
+        const result = await absenPulangAction(liveLocation ?? undefined);
+        setIsModalOpen(false);
+        if (!result.success) {
+          setFeedback({ type: 'error', message: result.message });
+        } else {
+          setFeedback({ type: 'success', message: result.message });
+        }
+      });
+      return;
+    }
+
     setIsGeoLoading(true);
 
     try {

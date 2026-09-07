@@ -15,6 +15,7 @@ interface DashboardActionsContainerProps {
   isLeave: boolean;
   isWeekend: boolean;
   isWindowClosed: boolean;
+  isFriday?: boolean;
   todayAttendance: any;
 }
 
@@ -26,56 +27,41 @@ export default function DashboardActionsContainer({
   isLeave,
   isWeekend,
   isWindowClosed,
+  isFriday = false,
   todayAttendance,
 }: DashboardActionsContainerProps) {
   const [liveLocation, setLiveLocation] = useState<LocationPayload | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!isFriday && !isCheckedOut);
 
   useEffect(() => {
-    const needsLiveLocation = !isCheckedOut;
-    console.log('DashboardActionsContainer watcher check:', {
-      isCheckedIn,
-      isCheckedOut,
-      isLeave,
-      needsLiveLocation,
-      liveLocation,
-    });
+    // Friday is WFA: No geolocation watcher is executed, and no GPS is requested.
+    const needsLiveLocation = !isFriday && !isWeekend && !isCheckedOut && !isLeave;
 
     if (!needsLiveLocation) {
       setIsLoading(false);
       setLiveLocation(null);
+      setLiveError(null);
       return;
     }
 
     setIsLoading(true);
     const cleanup = watchBrowserLocation(
       (location) => {
-        console.log('DashboardActionsContainer GPS callback success:', location.latitude, location.longitude);
         setLiveLocation(location);
         setLiveError(null);
         setIsLoading(false);
       },
       (error) => {
-        console.error('DashboardActionsContainer GPS callback error:', error);
         setLiveError(error);
         setIsLoading(false);
       }
     );
 
     return () => {
-      console.log('DashboardActionsContainer cleanup watcher');
       cleanup();
     };
-  }, [isCheckedIn, isCheckedOut, isLeave]);
-
-  useEffect(() => {
-    console.log('DashboardActionsContainer props to AttendanceLocationCard:', {
-      liveLocation,
-      isLoading,
-      liveError,
-    });
-  }, [liveLocation, isLoading, liveError]);
+  }, [isCheckedIn, isCheckedOut, isLeave, isFriday, isWeekend]);
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -88,6 +74,7 @@ export default function DashboardActionsContainer({
             isLeave={false}
             isWeekend={isWeekend}
             isWindowClosed={isWindowClosed}
+            isFriday={isFriday}
             liveLocation={liveLocation}
             liveError={liveError}
           />
@@ -98,6 +85,7 @@ export default function DashboardActionsContainer({
             checkOutTimeFormatted={checkOutTimeFormatted}
             isLeave={false}
             isWeekend={isWeekend}
+            isFriday={isFriday}
             liveLocation={liveLocation}
             liveError={liveError}
           />
@@ -114,6 +102,7 @@ export default function DashboardActionsContainer({
         longitudeOut={todayAttendance?.longitude_out ?? null}
         accuracyOut={todayAttendance?.accuracy_out ?? null}
         addressOut={todayAttendance?.address_out ?? null}
+        isFriday={isFriday}
         liveLatitude={liveLocation?.latitude}
         liveLongitude={liveLocation?.longitude}
         liveAccuracy={liveLocation?.accuracy}

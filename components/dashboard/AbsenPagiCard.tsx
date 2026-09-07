@@ -12,6 +12,7 @@ interface AbsenPagiCardProps {
   isLeave: boolean;
   isWeekend?: boolean;
   isWindowClosed?: boolean;
+  isFriday?: boolean;
   liveLocation?: LocationPayload | null;
   liveError?: string | null;
 }
@@ -22,6 +23,7 @@ export default function AbsenPagiCard({
   isLeave,
   isWeekend = false,
   isWindowClosed = false,
+  isFriday = false,
   liveLocation,
   liveError,
 }: AbsenPagiCardProps) {
@@ -47,6 +49,21 @@ export default function AbsenPagiCard({
 
   const handleConfirmAbsen = async () => {
     setFeedback(null);
+
+    // On Friday WFA, GPS is not requested and not enforced
+    if (isFriday) {
+      startTransition(async () => {
+        const result = await absenPagiAction(liveLocation ?? undefined);
+        setIsModalOpen(false);
+        if (!result.success) {
+          setFeedback({ type: 'error', message: result.message });
+        } else {
+          setFeedback({ type: 'success', message: result.message });
+        }
+      });
+      return;
+    }
+
     setIsGeoLoading(true);
 
     try {

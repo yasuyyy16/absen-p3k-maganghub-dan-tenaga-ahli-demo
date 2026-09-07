@@ -190,6 +190,7 @@ model users {
   role           Role       @default(VIEWER)
   jenis_personel String?
   universitas    String?
+  nip            String?    @unique
   sessions       sessions[]
 }
 

@@ -16,7 +16,8 @@ export interface AuthActionState {
 }
 
 const GENERIC_LOGIN_ERROR = 'Login gagal. Username atau password salah.';
-const ROLE_RESTRICTION_ERROR = 'Akun Anda tidak memiliki akses untuk login ke Web Presensi. Silakan gunakan Dashboard Kepegawaian.';
+const ROLE_RESTRICTION_ERROR =
+  'Akun Anda tidak memiliki hak akses untuk login ke Web Presensi. Silakan gunakan Dashboard Kepegawaian sesuai role akun Anda.';
 
 // Dummy hash to protect against timing enumeration attacks when user is not found
 const DUMMY_ARGON2_HASH =
