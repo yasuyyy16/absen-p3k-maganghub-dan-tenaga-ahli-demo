@@ -15,7 +15,7 @@ import {
 import { LocationPayload, PersonnelType } from '@/lib/types';
 import { isValidCoordinates, reverseGeocode, isWithinAttendanceRadius } from '@/lib/location';
 import { uploadAttendanceProof } from '@/lib/storage';
-import { MAX_PROOF_FILE_SIZE } from '@/lib/constants/attendance';
+import { MAX_PROOF_FILE_SIZE, validateProofFile } from '@/lib/constants/attendance';
 
 export interface AttendanceActionResult {
   success: boolean;
@@ -340,26 +340,19 @@ export async function submitIzinSakitAction(
     };
   }
 
-  // Validate proof file
-  if (!proofFile || proofFile.size === 0) {
+  // Validate proof file (server-side authority)
+  if (!proofFile) {
     return {
       success: false,
       message: 'Bukti wajib diunggah untuk pengajuan IZIN atau SAKIT.',
     };
   }
 
-  if (proofFile.size > MAX_PROOF_FILE_SIZE) {
+  const proofValidation = validateProofFile(proofFile);
+  if (!proofValidation.valid) {
     return {
       success: false,
-      message: 'Ukuran file maksimal 1,5 MB.',
-    };
-  }
-
-  const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-  if (!allowedTypes.includes(proofFile.type)) {
-    return {
-      success: false,
-      message: 'Format bukti harus berupa JPG, JPEG, PNG, atau PDF.',
+      message: proofValidation.error || 'Bukti tidak valid.',
     };
   }
 
@@ -511,28 +504,22 @@ export async function ubahKeIzinSakitAction(
     };
   }
 
-  // Validate proof file
-  if (!proofFile || proofFile.size === 0) {
+  // Validate proof file (server-side authority)
+  if (!proofFile) {
     return {
       success: false,
       message: 'Bukti wajib diunggah untuk pengajuan IZIN atau SAKIT.',
     };
   }
 
-  if (proofFile.size > MAX_PROOF_FILE_SIZE) {
+  const proofValidation = validateProofFile(proofFile);
+  if (!proofValidation.valid) {
     return {
       success: false,
-      message: 'Ukuran file maksimal 1,5 MB.',
+      message: proofValidation.error || 'Bukti tidak valid.',
     };
   }
 
-  const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-  if (!allowedTypes.includes(proofFile.type)) {
-    return {
-      success: false,
-      message: 'Format bukti harus berupa JPG, JPEG, PNG, atau PDF.',
-    };
-  }
 
   // Validate notes length (max 500 characters)
   if (rawNotes && rawNotes.length > 500) {

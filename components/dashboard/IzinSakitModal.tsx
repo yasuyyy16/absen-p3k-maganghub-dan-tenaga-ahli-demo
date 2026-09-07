@@ -5,7 +5,8 @@ import {
   submitIzinSakitAction,
   ubahKeIzinSakitAction,
 } from '@/app/actions/attendance';
-import { MAX_PROOF_FILE_SIZE } from '@/lib/constants/attendance';
+import { MAX_PROOF_FILE_SIZE, validateProofFile } from '@/lib/constants/attendance';
+import { compressImageProof, isCompressibleImage } from '@/lib/image-compression';
 
 interface IzinSakitModalProps {
   mode?: 'CREATE' | 'CONVERT';
@@ -17,6 +18,8 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
   const [status, setStatus] = useState<'IZIN' | 'SAKIT'>('IZIN');
   const [notes, setNotes] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionInfo, setCompressionInfo] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -28,7 +31,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
   // Handle Escape key navigation (Accessibility)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isPending) {
+      if (e.key === 'Escape' && !isPending && !isCompressing) {
         if (showConfirm) {
           setShowConfirm(false);
         } else if (isOpen) {
@@ -46,24 +49,92 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, showConfirm, isPending]);
+  }, [isOpen, showConfirm, isPending, isCompressing]);
+
+  // Handle file selection with client-side compression for images > 1 MB
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setErrorMsg(null);
+    setCompressionInfo(null);
+    const file = e.target.files?.[0];
+    if (!file) {
+      setProofFile(null);
+      return;
+    }
+
+    // Check basic validation (MIME and extension)
+    const initialValidation = validateProofFile(file);
+    if (!initialValidation.valid) {
+      // If it is just a size error on a compressible image, attempt compression
+      if (initialValidation.error === 'Ukuran file maksimal 1 MB.' && isCompressibleImage(file)) {
+        // Proceed to compression below
+      } else {
+        setErrorMsg(initialValidation.error || 'Format bukti tidak valid.');
+        setProofFile(null);
+        e.target.value = '';
+        return;
+      }
+    }
+
+    // PDF files: strictly never modified or compressed
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      if (file.size > MAX_PROOF_FILE_SIZE) {
+        setErrorMsg('Ukuran file PDF melebihi 1 MB. Maksimal ukuran: 1 MB.');
+        setProofFile(null);
+        e.target.value = '';
+        return;
+      }
+      setProofFile(file);
+      return;
+    }
+
+    // Image files: if already <= 1 MB, keep original without unnecessary recompression
+    if (file.size <= MAX_PROOF_FILE_SIZE) {
+      setProofFile(file);
+      return;
+    }
+
+    // Image files > 1 MB: compress/resize client-side
+    setIsCompressing(true);
+    try {
+      const compressed = await compressImageProof(file);
+      setProofFile(compressed);
+      const origSizeMb = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+      const compressedSizeStr =
+        compressed.size >= 1024 * 1024
+          ? (compressed.size / (1024 * 1024)).toFixed(1) + ' MB'
+          : Math.round(compressed.size / 1024) + ' KB';
+      setCompressionInfo(`Foto berhasil dioptimalkan: ${origSizeMb} → ${compressedSizeStr}`);
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Ukuran gambar terlalu besar dan tidak dapat dikompresi di bawah 1 MB.';
+      setErrorMsg(msg);
+      setProofFile(null);
+      e.target.value = '';
+    } finally {
+      setIsCompressing(false);
+    }
+  };
 
   // First step form submit
   const handleFirstStepSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
 
+    if (isCompressing) {
+      setErrorMsg('Sedang mengompresi gambar, silakan tunggu sebentar...');
+      return;
+    }
+
     if (!proofFile) {
       setErrorMsg('Bukti wajib diunggah untuk IZIN/SAKIT.');
       return;
     }
-    if (proofFile.size > MAX_PROOF_FILE_SIZE) {
-      setErrorMsg('Ukuran file maksimal 1,5 MB.');
-      return;
-    }
-    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!allowedTypes.includes(proofFile.type)) {
-      setErrorMsg('Format bukti harus berupa JPG, JPEG, PNG, atau PDF.');
+
+    const validation = validateProofFile(proofFile);
+    if (!validation.valid) {
+      setErrorMsg(validation.error || 'Bukti tidak valid.');
       return;
     }
 
@@ -83,6 +154,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
           setIsOpen(false);
           setNotes('');
           setProofFile(null);
+          setCompressionInfo(null);
         }
       });
     }
@@ -92,8 +164,19 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
   const handleConfirmConvert = () => {
     setErrorMsg(null);
 
+    if (isCompressing) {
+      setErrorMsg('Sedang mengompresi gambar, silakan tunggu sebentar...');
+      return;
+    }
+
     if (!proofFile) {
       setErrorMsg('Bukti wajib diunggah untuk IZIN/SAKIT.');
+      return;
+    }
+
+    const validation = validateProofFile(proofFile);
+    if (!validation.valid) {
+      setErrorMsg(validation.error || 'Bukti tidak valid.');
       return;
     }
 
@@ -112,6 +195,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
         setIsOpen(false);
         setNotes('');
         setProofFile(null);
+        setCompressionInfo(null);
       }
     });
   };
@@ -123,6 +207,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
         onClick={() => {
           setErrorMsg(null);
           setShowConfirm(false);
+          setCompressionInfo(null);
           setIsOpen(true);
         }}
         className="w-full min-h-[44px] py-2.5 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-xs sm:text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer shadow-xs flex items-center justify-center gap-2"
@@ -140,7 +225,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
           aria-modal="true"
           aria-labelledby={showConfirm ? 'confirm-modal-title' : 'modal-title'}
           onClick={(e) => {
-            if (e.target === e.currentTarget && !isPending) {
+            if (e.target === e.currentTarget && !isPending && !isCompressing) {
               if (showConfirm) {
                 setShowConfirm(false);
               } else {
@@ -161,9 +246,9 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                 </h2>
                 <button
                   type="button"
-                  onClick={() => !isPending && setIsOpen(false)}
-                  disabled={isPending}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer"
+                  onClick={() => !isPending && !isCompressing && setIsOpen(false)}
+                  disabled={isPending || isCompressing}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-50"
                   aria-label="Tutup modal"
                 >
                   ✕
@@ -206,7 +291,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                         value="SAKIT"
                         checked={status === 'SAKIT'}
                         onChange={() => setStatus('SAKIT')}
-                        disabled={isPending}
+                        disabled={isPending || isCompressing}
                         className="sr-only"
                       />
                       <svg className={`w-6 h-6 mb-1 ${status === 'SAKIT' ? 'text-purple-700' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
@@ -229,7 +314,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                         value="IZIN"
                         checked={status === 'IZIN'}
                         onChange={() => setStatus('IZIN')}
-                        disabled={isPending}
+                        disabled={isPending || isCompressing}
                         className="sr-only"
                       />
                       <svg className={`w-6 h-6 mb-1 ${status === 'IZIN' ? 'text-[#006194]' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
@@ -259,7 +344,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                     maxLength={500}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    disabled={isPending}
+                    disabled={isPending || isCompressing}
                     placeholder="Tuliskan alasan pengajuan izin atau sakit..."
                     className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50/50 text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all resize-none outline-none"
                   />
@@ -278,12 +363,29 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                     name="proof"
                     accept=".jpg,.jpeg,.png,.pdf"
                     required
-                    onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
-                    disabled={isPending}
+                    onChange={handleFileChange}
+                    disabled={isPending || isCompressing}
                     className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-[#006194] hover:file:bg-sky-100"
                   />
+                  {isCompressing && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-sky-700 bg-sky-50 p-2 rounded-lg border border-sky-200 animate-pulse">
+                      <svg className="w-4 h-4 animate-spin shrink-0 text-sky-600" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                      </svg>
+                      <span>Mengoptimalkan ukuran gambar dokumen...</span>
+                    </div>
+                  )}
+                  {compressionInfo && (
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                      <svg className="w-3.5 h-3.5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                      <span>{compressionInfo}</span>
+                    </div>
+                  )}
                   <p className="mt-2 text-[11px] text-slate-500">
-                    Bukti wajib diunggah untuk IZIN/SAKIT. Format: JPG, JPEG, PNG, PDF. Maksimal ukuran: 1,5 MB.
+                    Bukti wajib diunggah untuk IZIN/SAKIT. Format: JPG, JPEG, PNG, PDF. Maksimal ukuran: 1 MB.
                   </p>
                 </div>
 
@@ -291,19 +393,21 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    disabled={isPending}
+                    disabled={isPending || isCompressing}
                     className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-60"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    disabled={isPending}
+                    disabled={isPending || isCompressing}
                     className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004e77] text-white font-semibold text-xs sm:text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-60 shadow-xs flex items-center justify-center gap-1.5"
                   >
                     <span>
                       {isPending
                         ? 'Memproses...'
+                        : isCompressing
+                        ? 'Mengoptimalkan...'
                         : isConvert
                         ? 'Lanjutkan'
                         : 'Ajukan'}
@@ -366,7 +470,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                 <button
                   type="button"
                   onClick={() => setShowConfirm(false)}
-                  disabled={isPending}
+                  disabled={isPending || isCompressing}
                   className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-60"
                 >
                   Kembali
@@ -374,7 +478,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                 <button
                   type="button"
                   onClick={handleConfirmConvert}
-                  disabled={isPending}
+                  disabled={isPending || isCompressing}
                   className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs sm:text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 cursor-pointer disabled:opacity-60 shadow-xs flex items-center justify-center gap-1.5"
                 >
                   <span>{isPending ? 'Mengubah...' : 'Ya, Ubah Status'}</span>

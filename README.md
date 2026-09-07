@@ -290,9 +290,10 @@ Konfigurasi saat ini:
 
 Cron menggunakan timezone UTC. Jadwal `59 16 * * 1-5` setara dengan pukul 23:59 WIB setiap Senin–Jumat.
 
-Endpoint cron ini menjalankan dua fungsi otomatis sekaligus:
-1. **Pembuatan absensi ALFA otomatis** untuk pengguna aktif yang belum presensi pada hari kerja yang telah ditutup.
-2. **Pembersihan bukti izin/sakit kadaluarsa (Retensi 5 Hari)**: menghapus file fisik di `public/uploads/proofs/` yang absensinya sudah $> 5$ hari kalender (WIB). Record absensi di database tetap dipertahankan.
+Endpoint cron ini menjalankan fungsi otomatis:
+- **Pembuatan absensi ALFA otomatis** untuk pengguna aktif yang belum presensi pada hari kerja yang telah ditutup.
+
+> **Kebijakan Dokumen Bukti (Izin/Sakit)**: Dokumen bukti presensi (Izin/Sakit) disimpan secara permanen tanpa batas waktu (*retained indefinitely*). Tidak ada pembersihan atau penghapusan otomatis file bukti berdasarkan usia absensi. Batas ukuran file yang diunggah adalah maksimal 1 MB per file, dengan kompresi dan penyesuaian resolusi gambar secara otomatis pada sisi klien (*client-side compression*) sebelum pengunggahan.
 
 Endpoint cron:
 
@@ -326,12 +327,17 @@ Beberapa mekanisme keamanan yang diterapkan:
 - Endpoint cron dilindungi menggunakan secret.
 - Pengguna dapat dinonaktifkan.
 - Unique constraint mencegah duplikasi absensi pada tanggal yang sama.
+- Validasi file bukti dilakukan secara otoritatif di sisi server (ukuran $\le$ 1 MB, MIME type, dan ekstensi file).
 - Environment variables digunakan untuk menyimpan credential dan secret.
 - Credential database tidak disimpan di repository.
 
-## 🌐 Deployment
+## 🌐 Deployment & Storage
 
 Aplikasi dapat dideploy menggunakan platform yang mendukung Next.js dan PostgreSQL.
+
+### Konfigurasi Penyimpanan Bukti (Vercel Blob)
+- **Production (Vercel)**: Menggunakan `@vercel/blob` dengan konfigurasi `BLOB_READ_WRITE_TOKEN`. URL absolut dokumen bukti disimpan di database (`proof_file_url`).
+- **Local Development**: Jika `BLOB_READ_WRITE_TOKEN` tidak dikonfigurasi, sistem secara otomatis menggunakan fallback ke penyimpanan filesystem lokal (`public/uploads/proofs/`).
 
 Untuk deployment menggunakan Vercel:
 
@@ -341,6 +347,7 @@ Untuk deployment menggunakan Vercel:
    - `DATABASE_URL`
    - `SESSION_SECRET`
    - `CRON_SECRET`
+   - `BLOB_READ_WRITE_TOKEN` (dibuat via menu Vercel Storage -> Blob)
 4. Deploy project.
 5. Pastikan Vercel Cron aktif.
 6. Verifikasi endpoint `/api/cron/alfa`.
@@ -355,6 +362,7 @@ Contoh:
 DATABASE_URL="production-database-url"
 SESSION_SECRET="production-session-secret"
 CRON_SECRET="production-cron-secret"
+BLOB_READ_WRITE_TOKEN="vercel_blob_rw_..."
 ```
 
 ## 📌 Catatan
