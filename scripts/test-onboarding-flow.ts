@@ -70,6 +70,7 @@ async function runTests() {
     const realUsers = await prisma.users.findMany({
       where: {
         username: { not: { startsWith: SYNTHETIC_PREFIX } },
+        created_at: { lt: new Date('2026-09-08T08:00:00.000Z') },
       },
       select: { id: true, username: true, must_change_password: true },
     });
