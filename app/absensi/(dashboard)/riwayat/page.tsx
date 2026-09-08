@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { getAttendanceHistory } from '@/lib/attendance/history';
 import { formatWibMonthLong } from '@/lib/time';
 import MonthFilter from '@/components/history/MonthFilter';
@@ -25,6 +26,24 @@ export default async function RiwayatPage({ searchParams }: RiwayatPageProps) {
 
   if (!session || session.role !== 'VIEWER') {
     redirect('/absensi/login');
+  }
+
+  const user = await prisma.users.findUnique({
+    where: { id: session.userId },
+    select: { nama: true, jenis_personel: true, is_active: true, role: true },
+  });
+
+  if (!user || !user.is_active || user.role !== 'VIEWER') {
+    redirect('/absensi/login');
+  }
+
+  const isProfileComplete = Boolean(
+    user.nama && user.nama.trim().length > 0 &&
+    user.jenis_personel && user.jenis_personel.trim().length > 0
+  );
+
+  if (!isProfileComplete) {
+    redirect('/absensi/profil');
   }
 
   const resolvedParams = await searchParams;

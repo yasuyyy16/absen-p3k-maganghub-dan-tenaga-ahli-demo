@@ -29,6 +29,17 @@ export interface SessionPayload {
   role: Role;
   personId?: number;
   personType?: PersonnelType;
+  isProfileComplete?: boolean;
+  mustChangePassword?: boolean;
+}
+
+export function isProfileComplete(user: {
+  nama?: string | null;
+  jenis_personel?: string | null;
+}): boolean {
+  const cleanNama = user.nama?.trim() || '';
+  const cleanJenis = user.jenis_personel?.trim() || '';
+  return cleanNama.length > 0 && cleanJenis.length > 0;
 }
 
 export type PersonnelCategory = 'Tenaga Ahli' | 'MagangHub' | 'Magang Biasa';
@@ -48,6 +59,7 @@ export interface PersonDetails {
   universitas: string | null;
   jurusan?: string | null;
   isActive: boolean;
+  mustChangePassword?: boolean;
   personType?: PersonnelType;
   usernameChanged?: boolean;
   detail?: {

@@ -32,6 +32,8 @@ export async function signSessionToken(payload: SessionPayload): Promise<string>
     role: payload.role,
     personId: payload.personId ?? payload.userId,
     personType: payload.personType ?? 'MAGANG',
+    isProfileComplete: Boolean(payload.isProfileComplete),
+    mustChangePassword: Boolean(payload.mustChangePassword),
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -66,6 +68,8 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
             : payload.userId,
         personType:
           payload.personType === 'TENAGA_AHLI' ? 'TENAGA_AHLI' : 'MAGANG',
+        isProfileComplete: Boolean(payload.isProfileComplete),
+        mustChangePassword: Boolean(payload.mustChangePassword),
       };
     }
     return null;
@@ -100,6 +104,7 @@ export async function getSession(): Promise<SessionPayload | null> {
         where: { id: userIdNum },
       });
       if (user && user.is_active) {
+        const isComplete = Boolean(user.nama?.trim() && user.jenis_personel?.trim());
         return {
           userId: user.id,
           username: user.username,
@@ -110,6 +115,8 @@ export async function getSession(): Promise<SessionPayload | null> {
             user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli'
               ? 'TENAGA_AHLI'
               : 'MAGANG',
+          isProfileComplete: isComplete,
+          mustChangePassword: Boolean(user.must_change_password),
         };
       }
     }

@@ -60,6 +60,13 @@ export async function absenPagiAction(
     };
   }
 
+  if (!user.nama?.trim() || !user.jenis_personel?.trim()) {
+    return {
+      success: false,
+      message: 'Silakan lengkapi profil Anda terlebih dahulu sebelum menggunakan fitur absensi.',
+    };
+  }
+
   const isTenagaAhli = user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli';
   const personType: PersonnelType = isTenagaAhli ? 'TENAGA_AHLI' : 'MAGANG';
 
@@ -244,6 +251,13 @@ export async function absenPulangAction(
     };
   }
 
+  if (!user.nama?.trim() || !user.jenis_personel?.trim()) {
+    return {
+      success: false,
+      message: 'Silakan lengkapi profil Anda terlebih dahulu sebelum menggunakan fitur absensi.',
+    };
+  }
+
   const now = getNowWib();
   const today = getWibDateParts(now);
   const dayOfWeek = getWibDayOfWeek(now);
@@ -388,6 +402,13 @@ export async function submitIzinSakitAction(
     return {
       success: false,
       message: 'Sesi login tidak valid atau akun dinonaktifkan.',
+    };
+  }
+
+  if (!user.nama?.trim() || !user.jenis_personel?.trim()) {
+    return {
+      success: false,
+      message: 'Silakan lengkapi profil Anda terlebih dahulu sebelum menggunakan fitur absensi.',
     };
   }
 
@@ -562,6 +583,13 @@ export async function ubahKeIzinSakitAction(
     };
   }
 
+  if (!user.nama?.trim() || !user.jenis_personel?.trim()) {
+    return {
+      success: false,
+      message: 'Silakan lengkapi profil Anda terlebih dahulu sebelum menggunakan fitur absensi.',
+    };
+  }
+
   const notes = rawNotes && rawNotes.length > 0 ? rawNotes : null;
   const now = getNowWib();
   const today = getWibDateParts(now);
@@ -651,6 +679,13 @@ export async function catatRapatAction(): Promise<AttendanceActionResult> {
     return {
       success: false,
       message: 'Sesi login tidak valid atau akun dinonaktifkan.',
+    };
+  }
+
+  if (!user.nama?.trim() || !user.jenis_personel?.trim()) {
+    return {
+      success: false,
+      message: 'Silakan lengkapi profil Anda terlebih dahulu sebelum menggunakan fitur absensi.',
     };
   }
 

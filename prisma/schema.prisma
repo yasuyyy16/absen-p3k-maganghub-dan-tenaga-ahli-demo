@@ -183,8 +183,9 @@ model users {
   username       String     @unique
   password_hash  String
   nama           String
-  is_active      Boolean    @default(true)
-  last_login     DateTime?
+  is_active            Boolean    @default(true)
+  must_change_password Boolean    @default(true)
+  last_login           DateTime?
   created_at     DateTime   @default(now())
   updated_at     DateTime   @updatedAt
   role           Role       @default(VIEWER)

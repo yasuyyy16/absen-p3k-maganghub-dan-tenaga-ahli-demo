@@ -4,7 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/app/actions/auth';
 
-export default function BottomNav() {
+interface BottomNavProps {
+  isProfileComplete?: boolean;
+}
+
+export default function BottomNav({ isProfileComplete = true }: BottomNavProps) {
   const pathname = usePathname();
   const isDashboard = pathname === '/absensi';
   const isRiwayat = pathname.startsWith('/absensi/riwayat');
@@ -18,9 +22,12 @@ export default function BottomNav() {
       <div className="flex items-center justify-around h-16 px-1">
         {/* Dashboard Tab */}
         <Link
-          href="/absensi"
+          href={isProfileComplete ? '/absensi' : '/absensi/profil'}
+          title={isProfileComplete ? 'Dashboard' : 'Lengkapi profil terlebih dahulu'}
           className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-1.5 rounded-xl transition-colors ${
-            isDashboard
+            !isProfileComplete
+              ? 'text-slate-300 opacity-60 cursor-not-allowed'
+              : isDashboard
               ? 'text-[#006194] font-semibold'
               : 'text-slate-500 hover:text-slate-800'
           }`}
@@ -34,9 +41,12 @@ export default function BottomNav() {
 
         {/* Riwayat Tab */}
         <Link
-          href="/absensi/riwayat"
+          href={isProfileComplete ? '/absensi/riwayat' : '/absensi/profil'}
+          title={isProfileComplete ? 'Riwayat' : 'Lengkapi profil terlebih dahulu'}
           className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-1.5 rounded-xl transition-colors ${
-            isRiwayat
+            !isProfileComplete
+              ? 'text-slate-300 opacity-60 cursor-not-allowed'
+              : isRiwayat
               ? 'text-[#006194] font-semibold'
               : 'text-slate-500 hover:text-slate-800'
           }`}

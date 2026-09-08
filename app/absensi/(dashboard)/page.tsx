@@ -46,6 +46,17 @@ export default async function DashboardPage() {
     redirect('/absensi/login');
   }
 
+  // Server-side profile completion enforcement:
+  // User must complete Nama Lengkap and Jenis Personel before accessing the attendance dashboard.
+  const isProfileComplete = Boolean(
+    user.nama && user.nama.trim().length > 0 &&
+    user.jenis_personel && user.jenis_personel.trim().length > 0
+  );
+
+  if (!isProfileComplete) {
+    redirect('/absensi/profil');
+  }
+
   const isTenagaAhli = user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli';
   const personType: PersonnelType = isTenagaAhli ? 'TENAGA_AHLI' : 'MAGANG';
 
@@ -175,15 +186,6 @@ export default async function DashboardPage() {
     (typeof todayAttendance.latitude === 'number' ||
       typeof todayAttendance.latitude_out === 'number');
 
-  // Check if user profile is incomplete
-  const isProfileIncomplete =
-    !user.nama ||
-    user.nama.trim().length === 0 ||
-    user.nama.trim() === user.username ||
-    !user.jenis_personel ||
-    (user.jenis_personel === 'Magang Biasa' &&
-      (!user.universitas || user.universitas.trim().length === 0));
-
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* Participant Profile Card */}
@@ -194,33 +196,38 @@ export default async function DashboardPage() {
         personDetails={personDetails}
       />
 
-      {/* Incomplete Profile Reminder Banner */}
-      {isProfileIncomplete && (
+      {/* Password Change Warning Banner */}
+      {user.must_change_password && (
         <div
           role="alert"
-          className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex items-start justify-between gap-3.5 shadow-xs text-amber-950"
+          className="bg-amber-50 border border-amber-300 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 shadow-xs text-amber-950"
         >
-          <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <div
-              className="w-7 h-7 rounded-full bg-amber-200/80 text-amber-900 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
+              className="w-8 h-8 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center text-sm font-bold shrink-0"
               aria-hidden="true"
             >
-              !
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+              </svg>
             </div>
             <div className="space-y-0.5 flex-1 min-w-0">
-              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-900">
-                Profil Belum Lengkap
-              </h3>
+              <p className="text-sm sm:text-base font-bold text-amber-950">
+                passwordnya perbarui dulu lah cik
+              </p>
               <p className="text-xs text-amber-800 font-medium">
-                Silakan lengkapi Nama Lengkap, Jenis Personel, dan Universitas Anda di menu Pengaturan Profil agar data presensi tercatat akurat.
+                Demi keamanan akun Anda, silakan ubah kata sandi awal akun Anda.
               </p>
             </div>
           </div>
           <Link
-            href="/absensi/profil"
-            className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+            href="/absensi/profil#ubah-password"
+            className="shrink-0 min-h-[44px] px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
           >
-            Lengkapi Profil
+            <span>Ubah Password</span>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
           </Link>
         </div>
       )}

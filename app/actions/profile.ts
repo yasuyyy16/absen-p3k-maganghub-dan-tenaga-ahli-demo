@@ -25,6 +25,25 @@ export interface ProfileActionResult {
 
 const USERNAME_REGEX = /^[a-zA-Z0-9._-]+$/;
 
+async function safeSetSessionCookie(token: string) {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE_NAME, token, getSessionCookieOptions());
+  } catch {
+    // Graceful fallback when executed outside Next.js request context (e.g. tests)
+  }
+}
+
+function safeRevalidatePaths(...paths: string[]) {
+  try {
+    for (const path of paths) {
+      revalidatePath(path);
+    }
+  } catch {
+    // Graceful fallback when executed outside Next.js request context (e.g. tests)
+  }
+}
+
 /**
  * Server action to update user's personnel information (Nama, Jenis Personel, Universitas).
  * Security: Authenticated session exclusively determines target user identity in the shared `users` table.
@@ -99,19 +118,20 @@ export async function updatePersonnelInfoAction(
     // 2. Re-sign session JWT with updated full name & personType
     const isTenagaAhli = updatedUser.jenis_personel?.trim().toLowerCase() === 'tenaga ahli';
     const personType: PersonnelType = isTenagaAhli ? 'TENAGA_AHLI' : 'MAGANG';
+    const isComplete = Boolean(
+      updatedUser.nama && updatedUser.nama.trim().length > 0 &&
+      updatedUser.jenis_personel && updatedUser.jenis_personel.trim().length > 0
+    );
 
     const newPayload: SessionPayload = {
       ...session,
       nama: updatedUser.nama,
       personType,
+      isProfileComplete: isComplete,
     };
     const newToken = await signSessionToken(newPayload);
-    const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, newToken, getSessionCookieOptions());
-
-    revalidatePath('/absensi');
-    revalidatePath('/absensi/profil');
-    revalidatePath('/absensi/riwayat');
+    await safeSetSessionCookie(newToken);
+    safeRevalidatePaths('/absensi', '/absensi/profil', '/absensi/riwayat');
 
     return {
       success: true,
@@ -203,12 +223,8 @@ export async function updateUsernameAction(
       username: updatedUser.username,
     };
     const newToken = await signSessionToken(newPayload);
-    const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, newToken, getSessionCookieOptions());
-
-    revalidatePath('/absensi');
-    revalidatePath('/absensi/profil');
-    revalidatePath('/absensi/riwayat');
+    await safeSetSessionCookie(newToken);
+    safeRevalidatePaths('/absensi', '/absensi/profil', '/absensi/riwayat');
 
     return {
       success: true,
@@ -301,9 +317,19 @@ export async function updatePasswordAction(
       where: { id: session.userId },
       data: {
         password_hash: newHash,
+        must_change_password: false,
         updated_at: new Date(),
       },
     });
+
+    // Re-sign session JWT with mustChangePassword = false
+    const newPayload: SessionPayload = {
+      ...session,
+      mustChangePassword: false,
+    };
+    const newToken = await signSessionToken(newPayload);
+    await safeSetSessionCookie(newToken);
+    safeRevalidatePaths('/absensi', '/absensi/profil', '/absensi/riwayat');
 
     return {
       success: true,

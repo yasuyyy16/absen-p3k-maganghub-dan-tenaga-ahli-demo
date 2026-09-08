@@ -21,13 +21,15 @@ export default async function DashboardLayout({
     redirect('/absensi/login');
   }
 
+  const isProfileComplete = Boolean(session.isProfileComplete);
+
   return (
     <div className="min-h-dvh flex flex-col bg-[#f7f9ff] text-[#181c20]">
       {/* Header / Navbar */}
       <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 pt-safe">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 sm:h-18 flex items-center justify-between">
           <Link
-            href="/absensi"
+            href={isProfileComplete ? '/absensi' : '/absensi/profil'}
             className="flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] rounded-xl p-1 -ml-1 group transition-colors"
           >
             <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#006194] border border-sky-100 font-bold flex items-center justify-center text-sm shadow-2xs group-hover:bg-sky-100 transition-colors">
@@ -45,19 +47,37 @@ export default async function DashboardLayout({
 
           {/* Desktop Navigation & Actions */}
           <div className="hidden sm:flex items-center gap-2">
-            <Link
-              href="/absensi"
-              className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-[#006194] hover:bg-sky-50 text-xs sm:text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] flex items-center gap-1.5"
-            >
-              Dashboard
-            </Link>
+            {isProfileComplete ? (
+              <Link
+                href="/absensi"
+                className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-[#006194] hover:bg-sky-50 text-xs sm:text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] flex items-center gap-1.5"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <span
+                title="Lengkapi profil terlebih dahulu"
+                className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-400 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-not-allowed opacity-60"
+              >
+                Dashboard
+              </span>
+            )}
 
-            <Link
-              href="/absensi/riwayat"
-              className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-[#006194] hover:bg-sky-50 text-xs sm:text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] flex items-center gap-1.5"
-            >
-              Riwayat
-            </Link>
+            {isProfileComplete ? (
+              <Link
+                href="/absensi/riwayat"
+                className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-[#006194] hover:bg-sky-50 text-xs sm:text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] flex items-center gap-1.5"
+              >
+                Riwayat
+              </Link>
+            ) : (
+              <span
+                title="Lengkapi profil terlebih dahulu"
+                className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-400 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-not-allowed opacity-60"
+              >
+                Riwayat
+              </span>
+            )}
 
             <Link
               href="/absensi/profil"
@@ -98,7 +118,7 @@ export default async function DashboardLayout({
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <BottomNav />
+      <BottomNav isProfileComplete={isProfileComplete} />
 
       {/* Footer */}
       <footer className="border-t border-slate-200/80 bg-white py-5 mt-auto text-center hidden sm:block">

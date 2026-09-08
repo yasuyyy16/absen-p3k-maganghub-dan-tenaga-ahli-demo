@@ -43,6 +43,7 @@ export async function loginAction(
   }
 
   let token: string | null = null;
+  let targetRedirect = '/absensi';
 
   try {
     // 1. Look up user in the shared PostgreSQL `users` table
@@ -82,7 +83,16 @@ export async function loginAction(
     const isTenagaAhli = user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli';
     const personType: PersonnelType = isTenagaAhli ? 'TENAGA_AHLI' : 'MAGANG';
 
-    // 6. Assemble secure session payload
+    // 6. Check profile completion and password change requirement
+    const isProfileComplete = Boolean(
+      user.nama && user.nama.trim().length > 0 &&
+      user.jenis_personel && user.jenis_personel.trim().length > 0
+    );
+    const mustChangePassword = Boolean(user.must_change_password);
+
+    targetRedirect = isProfileComplete ? '/absensi' : '/absensi/profil';
+
+    // 7. Assemble secure session payload
     const payload: SessionPayload = {
       userId: user.id,
       username: user.username,
@@ -90,6 +100,8 @@ export async function loginAction(
       role: 'VIEWER',
       personId: user.id,
       personType,
+      isProfileComplete,
+      mustChangePassword,
     };
 
     token = await signSessionToken(payload);
@@ -102,7 +114,7 @@ export async function loginAction(
   if (token) {
     const cookieStore = await cookies();
     cookieStore.set(SESSION_COOKIE_NAME, token, getSessionCookieOptions());
-    redirect('/absensi');
+    redirect(targetRedirect);
   }
 
   return { error: GENERIC_LOGIN_ERROR };

@@ -362,7 +362,7 @@ export default function ProfileForm({
         </div>
 
         {/* SUBSECTION B: UBAH PASSWORD */}
-        <div className="space-y-4 pt-4 border-t border-slate-100">
+        <div id="ubah-password" className="space-y-4 pt-4 border-t border-slate-100 scroll-mt-24">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <h3 className="text-sm font-bold text-slate-800">
               Kata Sandi (Password)
