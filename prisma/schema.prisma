@@ -199,6 +199,7 @@ enum AttendanceStatus {
   IZIN
   SAKIT
   ALFA
+  RAPAT
 }
 
 enum EmployeeStatus {

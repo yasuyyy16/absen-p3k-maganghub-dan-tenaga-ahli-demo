@@ -56,6 +56,10 @@ export default function AttendanceStatusBadge({
     label = 'Alfa';
     badgeStyle = 'bg-red-50 text-red-900 border-red-200/80';
     dotStyle = 'bg-red-500';
+  } else if (effectiveStatus === 'RAPAT') {
+    label = 'Rapat';
+    badgeStyle = 'bg-teal-50 text-teal-900 border-teal-200/80';
+    dotStyle = 'bg-teal-600';
   }
 
   return (

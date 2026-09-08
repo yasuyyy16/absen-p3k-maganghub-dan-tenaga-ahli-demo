@@ -115,6 +115,9 @@ export type AttendanceTodayState =
       type: 'LEAVE';
       status: 'IZIN' | 'SAKIT';
       notes: string | null;
+    }
+  | {
+      type: 'RAPAT';
     };
 
 export interface AttendanceHistoryItem {

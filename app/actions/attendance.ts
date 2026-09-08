@@ -137,6 +137,12 @@ export async function absenPagiAction(
           message: `Data absensi hari ini sudah tercatat sebagai ${existing.status === 'IZIN' ? 'Izin' : 'Sakit'}.`,
         };
       }
+      if (existing.status === 'RAPAT') {
+        return {
+          success: false,
+          message: 'Data absensi hari ini sudah tercatat sebagai Rapat.',
+        };
+      }
 
       // If existing record has status 'ALFA' (e.g. premature ALFA during ongoing window), update it to HADIR
       const address = hasValidGps && location
@@ -266,6 +272,13 @@ export async function absenPulangAction(
         date: today.dateObj,
       },
     });
+
+    if (existing?.status === 'RAPAT') {
+      return {
+        success: false,
+        message: 'Data absensi hari ini sudah tercatat sebagai Rapat. Absen Pulang tidak diperlukan.',
+      };
+    }
 
     if (!existing || existing.status !== 'HADIR' || !existing.check_in) {
       return {
@@ -405,6 +418,12 @@ export async function submitIzinSakitAction(
         return {
           success: false,
           message: `Pengajuan ${existing.status === 'IZIN' ? 'Izin' : 'Sakit'} hari ini sudah tercatat.`,
+        };
+      }
+      if (existing.status === 'RAPAT') {
+        return {
+          success: false,
+          message: 'Data absensi hari ini sudah tercatat sebagai Rapat.',
         };
       }
 
@@ -607,6 +626,157 @@ export async function ubahKeIzinSakitAction(
     return {
       success: false,
       message: 'Terjadi kesalahan sistem saat mengubah status kehadiran. Silakan coba lagi.',
+    };
+  }
+}
+
+/**
+ * Server Action to record meeting attendance (Rapat) for the authenticated user.
+ * Supports direct Rapat (when no attendance exists) and in-place conversion from HADIR.
+ */
+export async function catatRapatAction(): Promise<AttendanceActionResult> {
+  const session = await getSession();
+  if (!session) {
+    return {
+      success: false,
+      message: 'Sesi login telah berakhir. Silakan login kembali.',
+    };
+  }
+
+  const user = await prisma.users.findUnique({
+    where: { id: session.userId },
+  });
+
+  if (!user || !user.is_active) {
+    return {
+      success: false,
+      message: 'Sesi login tidak valid atau akun dinonaktifkan.',
+    };
+  }
+
+  const isTenagaAhli = user.jenis_personel?.trim().toLowerCase() === 'tenaga ahli';
+  const personType: PersonnelType = isTenagaAhli ? 'TENAGA_AHLI' : 'MAGANG';
+
+  const now = getNowWib();
+  const today = getWibDateParts(now);
+  const dayOfWeek = getWibDayOfWeek(now);
+
+  if (dayOfWeek === 6 || dayOfWeek === 0) {
+    return {
+      success: false,
+      message: 'Hari Sabtu dan Minggu merupakan hari libur. Absensi tidak dapat dilakukan.',
+    };
+  }
+
+  if (isWibAttendanceWindowClosed(today.dateObj, now)) {
+    return {
+      success: false,
+      message: 'Waktu absensi hari ini telah berakhir.',
+    };
+  }
+
+  if (!isWibAttendanceWindowOpen(today.dateObj, now)) {
+    return {
+      success: false,
+      message: 'Periode absensi harian belum dimulai. Absensi dimulai pukul 00:01 WIB.',
+    };
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.attendances.findFirst({
+        where: {
+          person_id: user.id,
+          date: today.dateObj,
+        },
+      });
+
+      if (existing) {
+        if (existing.status === 'HADIR' && existing.check_in !== null) {
+          await tx.attendances.update({
+            where: { id: existing.id },
+            data: {
+              status: 'RAPAT',
+              notes: 'Rapat',
+              check_out: null,
+              updated_at: now,
+            },
+          });
+
+          return {
+            success: true,
+            message: 'Presensi Rapat berhasil dicatat.',
+          };
+        }
+
+        if (existing.status === 'RAPAT') {
+          return {
+            success: false,
+            message: 'Presensi Rapat hari ini sudah tercatat.',
+          };
+        }
+
+        if (existing.status === 'IZIN' || existing.status === 'SAKIT') {
+          return {
+            success: false,
+            message: `Tidak dapat memilih Rapat karena status kehadiran hari ini adalah ${existing.status === 'IZIN' ? 'Izin' : 'Sakit'}.`,
+          };
+        }
+
+        if (existing.status === 'ALFA') {
+          return {
+            success: false,
+            message: 'Tidak dapat memilih Rapat karena status kehadiran hari ini sudah tercatat sebagai Alfa.',
+          };
+        }
+
+        return {
+          success: false,
+          message: 'Presensi hari ini sudah tercatat.',
+        };
+      }
+
+      await tx.attendances.create({
+        data: {
+          person_type: personType,
+          person_id: user.id,
+          date: today.dateObj,
+          status: 'RAPAT',
+          notes: 'Rapat',
+          check_in: null,
+          check_out: null,
+          latitude: null,
+          longitude: null,
+          accuracy: null,
+          address: null,
+          updated_at: now,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Presensi Rapat berhasil dicatat.',
+      };
+    });
+
+    safeRevalidatePaths('/absensi', '/absensi/riwayat');
+
+    return result;
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      return {
+        success: false,
+        message: 'Presensi hari ini sudah tercatat.',
+      };
+    }
+
+    console.error('Error recording rapat:', error);
+    return {
+      success: false,
+      message: 'Terjadi kesalahan sistem saat mencatat kehadiran Rapat. Silakan coba lagi.',
     };
   }
 }

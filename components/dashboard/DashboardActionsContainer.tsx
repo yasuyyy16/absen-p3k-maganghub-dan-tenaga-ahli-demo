@@ -30,14 +30,15 @@ export default function DashboardActionsContainer({
   isFriday = false,
   todayAttendance,
 }: DashboardActionsContainerProps) {
+  const isRapat = todayAttendance?.status === 'RAPAT';
   const [liveLocation, setLiveLocation] = useState<LocationPayload | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(!isFriday && !isCheckedIn);
+  const [isLoading, setIsLoading] = useState(!isFriday && !isCheckedIn && !isRapat);
 
   useEffect(() => {
     // GPS is only needed on Monday-Thursday before Absen Pagi.
-    // Friday is WFA, and Absen Pulang is location-independent.
-    const needsLiveLocation = !isFriday && !isWeekend && !isCheckedIn && !isLeave;
+    // Friday is WFA, Absen Pulang is location-independent, and Rapat does not require GPS.
+    const needsLiveLocation = !isFriday && !isWeekend && !isCheckedIn && !isLeave && !isRapat;
 
     if (!needsLiveLocation) {
       setIsLoading(false);
@@ -62,12 +63,12 @@ export default function DashboardActionsContainer({
     return () => {
       cleanup();
     };
-  }, [isCheckedIn, isCheckedOut, isLeave, isFriday, isWeekend]);
+  }, [isCheckedIn, isCheckedOut, isLeave, isFriday, isWeekend, isRapat]);
 
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* Attendance Actions Grid */}
-      {!isLeave && (
+      {!isLeave && !isRapat && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           <AbsenPagiCard
             isCheckedIn={isCheckedIn}
@@ -94,22 +95,24 @@ export default function DashboardActionsContainer({
       )}
 
       {/* Map Preview (Live or Recorded) */}
-      <AttendanceLocationCard
-        latitude={todayAttendance?.latitude ?? null}
-        longitude={todayAttendance?.longitude ?? null}
-        accuracy={todayAttendance?.accuracy ?? null}
-        address={todayAttendance?.address ?? null}
-        latitudeOut={todayAttendance?.latitude_out ?? null}
-        longitudeOut={todayAttendance?.longitude_out ?? null}
-        accuracyOut={todayAttendance?.accuracy_out ?? null}
-        addressOut={todayAttendance?.address_out ?? null}
-        isFriday={isFriday}
-        liveLatitude={liveLocation?.latitude}
-        liveLongitude={liveLocation?.longitude}
-        liveAccuracy={liveLocation?.accuracy}
-        isLiveLoading={isLoading}
-        liveError={liveError}
-      />
+      {!isRapat && (
+        <AttendanceLocationCard
+          latitude={todayAttendance?.latitude ?? null}
+          longitude={todayAttendance?.longitude ?? null}
+          accuracy={todayAttendance?.accuracy ?? null}
+          address={todayAttendance?.address ?? null}
+          latitudeOut={todayAttendance?.latitude_out ?? null}
+          longitudeOut={todayAttendance?.longitude_out ?? null}
+          accuracyOut={todayAttendance?.accuracy_out ?? null}
+          addressOut={todayAttendance?.address_out ?? null}
+          isFriday={isFriday}
+          liveLatitude={liveLocation?.latitude}
+          liveLongitude={liveLocation?.longitude}
+          liveAccuracy={liveLocation?.accuracy}
+          isLiveLoading={isLoading}
+          liveError={liveError}
+        />
+      )}
     </div>
   );
 }

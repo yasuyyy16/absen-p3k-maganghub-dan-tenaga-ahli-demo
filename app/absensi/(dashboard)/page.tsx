@@ -27,6 +27,7 @@ import AttendanceLocationCard from '@/components/dashboard/AttendanceLocationCar
 import FridayWfhBanner from '@/components/dashboard/FridayWfhBanner';
 import WeekendHolidayBanner from '@/components/dashboard/WeekendHolidayBanner';
 import DashboardActionsContainer from '@/components/dashboard/DashboardActionsContainer';
+import AktivitasKhususSection from '@/components/dashboard/AktivitasKhususSection';
 import { resolveProofUrl } from '@/lib/attendance-proof';
 
 export default async function DashboardPage() {
@@ -80,10 +81,11 @@ export default async function DashboardPage() {
   const isWindowClosed = isWibAttendanceWindowClosed(todayParts.dateObj, now);
 
   // Determine current attendance state
-  let currentBadgeStatus: 'BELUM_ABSEN' | 'SUDAH_PAGI' | 'LENGKAP' | 'IZIN' | 'SAKIT' | 'ALFA' = 'BELUM_ABSEN';
+  let currentBadgeStatus: 'BELUM_ABSEN' | 'SUDAH_PAGI' | 'LENGKAP' | 'IZIN' | 'SAKIT' | 'ALFA' | 'RAPAT' = 'BELUM_ABSEN';
   let isCheckedIn = false;
   let isCheckedOut = false;
   let isLeave = false;
+  let isRapat = false;
   let leaveStatus: 'IZIN' | 'SAKIT' = 'IZIN';
   let leaveNotes: string | null = null;
   let checkInTimeFormatted: string | null = null;
@@ -115,6 +117,12 @@ export default async function DashboardPage() {
       leaveStatus = 'SAKIT';
       leaveNotes = todayAttendance.notes;
       proofFileUrl = resolveProofUrl(todayAttendance.proof_file_url);
+    } else if (todayAttendance.status === 'RAPAT') {
+      currentBadgeStatus = 'RAPAT';
+      isRapat = true;
+      checkInTimeFormatted = todayAttendance.check_in
+        ? formatWibTime(todayAttendance.check_in)
+        : null;
     } else if (todayAttendance.status === 'ALFA') {
       // If the attendance window is still open (< 23:59:00 WIB), treat as BELUM_ABSEN
       if (isWindowClosed) {
@@ -135,6 +143,32 @@ export default async function DashboardPage() {
   // If no record exists OR if existing record is a premature ALFA while window is still open:
   const isNotRecorded = !todayAttendance || (todayAttendance.status === 'ALFA' && !isWindowClosed);
   const canConvertToLeave = isCheckedIn && !isCheckedOut;
+
+  // Determine Rapat eligibility and entry mode
+  let canSelectRapat = false;
+  let rapatEntryMode: 'NO_ATTENDANCE' | 'FROM_HADIR' | null = null;
+  let rapatBlockedReason: string | null = null;
+
+  if (isRapat) {
+    canSelectRapat = false;
+  } else if (isWeekend || isWindowClosed) {
+    canSelectRapat = false;
+  } else if (!todayAttendance || (todayAttendance.status === 'ALFA' && !isWindowClosed)) {
+    canSelectRapat = true;
+    rapatEntryMode = 'NO_ATTENDANCE';
+  } else if (todayAttendance.status === 'HADIR' && Boolean(todayAttendance.check_in)) {
+    canSelectRapat = true;
+    rapatEntryMode = 'FROM_HADIR';
+  } else if (todayAttendance.status === 'IZIN' || todayAttendance.status === 'SAKIT') {
+    canSelectRapat = false;
+    rapatBlockedReason = `Aktivitas Khusus (Rapat) tidak dapat dipilih karena status kehadiran hari ini sudah tercatat sebagai ${todayAttendance.status === 'IZIN' ? 'Izin' : 'Sakit'}.`;
+  } else if (todayAttendance.status === 'ALFA') {
+    canSelectRapat = false;
+    rapatBlockedReason = 'Aktivitas Khusus (Rapat) tidak dapat dipilih karena status kehadiran hari ini sudah tercatat sebagai Alfa.';
+  } else {
+    canSelectRapat = false;
+    rapatBlockedReason = 'Aktivitas Khusus tidak tersedia karena presensi hari ini sudah tercatat.';
+  }
 
   const hasLocationData =
     todayAttendance &&
@@ -232,9 +266,20 @@ export default async function DashboardPage() {
         <AttendanceStatusBadge status={currentBadgeStatus} />
       </div>
 
+      {/* Aktivitas Khusus (Rapat) */}
+      <AktivitasKhususSection
+        isRapat={isRapat}
+        canSelectRapat={canSelectRapat}
+        entryMode={rapatEntryMode}
+        blockedReason={rapatBlockedReason}
+        checkInTimeFormatted={checkInTimeFormatted}
+        isWeekend={isWeekend}
+        isWindowClosed={isWindowClosed}
+      />
+
       {/* Friday WFH / Weekend Holiday Indicators */}
-      {isFriday && !isLeave && <FridayWfhBanner />}
-      {isWeekend && !isLeave && <WeekendHolidayBanner />}
+      {isFriday && !isLeave && !isRapat && <FridayWfhBanner />}
+      {isWeekend && !isLeave && !isRapat && <WeekendHolidayBanner />}
 
       {/* Attendance Actions & Map Tracking */}
       <DashboardActionsContainer
@@ -250,7 +295,7 @@ export default async function DashboardPage() {
       />
 
       {/* Initial Izin / Sakit Action Trigger */}
-      {isNotRecorded && (
+      {isNotRecorded && !isRapat && (
         <div className="pt-1">
           <IzinSakitModal mode="CREATE" />
         </div>
