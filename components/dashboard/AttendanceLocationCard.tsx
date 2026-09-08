@@ -58,8 +58,8 @@ export default function AttendanceLocationCard({
 
   const isOut = activeTab === 'OUT';
 
-  // If viewing OUT and OUT location exists, show recorded OUT location. Otherwise show LIVE location.
-  const showLive = isOut ? !hasOutLocation : !hasInLocation;
+  // Live GPS is only used for Absen Pagi (IN) before check-in. Absen Pulang (OUT) is location-independent.
+  const showLive = isOut ? false : !hasInLocation;
 
   const currentLat = showLive ? liveLatitude : isOut ? latitudeOut : latitude;
   const currentLon = showLive ? liveLongitude : isOut ? longitudeOut : longitude;
@@ -80,7 +80,13 @@ export default function AttendanceLocationCard({
             Lokasi Presensi
           </h3>
           <p className="text-xs text-slate-500">
-            {showLive ? 'Menampilkan posisi GPS Anda secara realtime.' : 'Titik koordinat geografis terekam saat melakukan presensi.'}
+            {isFriday && !hasSelectedLocation
+              ? 'Hari Jumat — Work From Anywhere (Bebas Lokasi).'
+              : isOut && !hasOutLocation
+              ? 'Presensi pulang bebas lokasi (tidak memerlukan titik koordinat GPS).'
+              : showLive
+              ? 'Menampilkan posisi GPS Anda secara realtime.'
+              : 'Titik koordinat geografis terekam saat melakukan presensi.'}
           </p>
         </div>
 
@@ -243,7 +249,7 @@ export default function AttendanceLocationCard({
           </p>
           <p className="text-xs text-slate-400">
             {isOut
-              ? 'Data lokasi akan tersimpan otomatis saat Anda melakukan Absen Pulang.'
+              ? 'Presensi pulang dapat dilakukan dari lokasi mana saja (Bebas Lokasi).'
               : 'Data lokasi tersimpan saat Anda melakukan Absen Pagi.'}
           </p>
         </div>

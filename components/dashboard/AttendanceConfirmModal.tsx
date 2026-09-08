@@ -9,6 +9,7 @@ interface AttendanceConfirmModalProps {
   mode: 'PAGI' | 'PULANG';
   isGeoLoading: boolean;
   isPending: boolean;
+  isFriday?: boolean;
 }
 
 export default function AttendanceConfirmModal({
@@ -18,6 +19,7 @@ export default function AttendanceConfirmModal({
   mode,
   isGeoLoading,
   isPending,
+  isFriday = false,
 }: AttendanceConfirmModalProps) {
   const isBusy = isGeoLoading || isPending;
   const isPagi = mode === 'PAGI';
@@ -89,7 +91,11 @@ export default function AttendanceConfirmModal({
               {modalTitle}
             </h2>
             <p className="text-xs text-slate-500">
-              Presensi digital berbasis lokasi GPS
+              {isFriday
+                ? 'Presensi digital WFA (Bebas Lokasi)'
+                : isPagi
+                ? 'Presensi digital berbasis lokasi GPS'
+                : 'Presensi digital bebas lokasi'}
             </p>
           </div>
         </div>
@@ -106,7 +112,9 @@ export default function AttendanceConfirmModal({
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
             </svg>
             <span className="leading-snug">
-              Titik koordinat GPS dan waktu presensi aktual akan terekam secara otomatis oleh sistem.
+              {isFriday || !isPagi
+                ? 'Waktu presensi aktual akan terekam secara otomatis oleh sistem.'
+                : 'Titik koordinat GPS dan waktu presensi aktual akan terekam secara otomatis oleh sistem.'}
             </span>
           </div>
         </div>

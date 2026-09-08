@@ -251,28 +251,12 @@ export async function absenPulangAction(
     };
   }
 
-  // GPS & Radius Validation:
-  // Friday is WFA: GPS is optional, and geofence validation is bypassed.
-  // Monday-Thursday (1, 2, 3, 4): GPS coordinates are strictly required and radius check is enforced.
+  // GPS & Location for Absen Pulang:
+  // Absen Pulang is location-independent (bebas lokasi) on all working days (Mon-Fri).
+  // GPS coordinates and geofence/radius validation are NOT required.
   const hasValidGps = Boolean(
     location && isValidCoordinates(location.latitude, location.longitude)
   );
-
-  if (!isFriday) {
-    if (!hasValidGps || !location) {
-      return {
-        success: false,
-        message: 'Lokasi GPS diperlukan untuk melakukan absen pulang. Pastikan izin lokasi diaktifkan pada browser.',
-      };
-    }
-
-    if (!isWithinAttendanceRadius(location.latitude, location.longitude)) {
-      return {
-        success: false,
-        message: 'Anda berada di luar radius absensi. Absensi Senin-Kamis hanya dapat dilakukan dalam radius 100 meter dari Gedung Mina Bahari 3.',
-      };
-    }
-  }
 
   try {
     // Find today's attendance record for this user

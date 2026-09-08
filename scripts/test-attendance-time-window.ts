@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { generateAlfaAttendance } from '../lib/attendance/alfa';
-import { absenPagiAction } from '../app/actions/attendance';
+import { absenPagiAction, absenPulangAction } from '../app/actions/attendance';
 import {
   parseWibDateString,
   isWibAttendanceWindowOpen,
@@ -52,6 +52,7 @@ async function runAttendanceTimeWindowTests() {
     'test_tw_viewer_izin_rec',
     'test_tw_viewer_sakit_rec',
     'test_tw_viewer_action_test',
+    'test_tw_viewer_outside',
   ];
 
   // Isolated test dates
@@ -313,6 +314,71 @@ async function runAttendanceTimeWindowTests() {
         actionResultDuplicate.message.includes('sudah absen pagi'),
       'Server Action → rejects second Absen Pagi when already HADIR',
       `Result message was: "${actionResultDuplicate.message}"`
+    );
+
+    // E. Monday–Thursday Absen Pagi: Geofence radius rejection (Mon–Thu GPS 100m required)
+    const testUserOutside = await prisma.users.create({
+      data: {
+        username: 'test_tw_viewer_outside',
+        nama: 'Test TW Viewer Outside',
+        password_hash: 'dummy_hash',
+        role: 'VIEWER',
+        is_active: true,
+        jenis_personel: 'MagangHub',
+      },
+    });
+    process.env.TEST_AUTH_USER_ID = String(testUserOutside.id);
+    const actionResultOutsidePagi = await absenPagiAction({
+      latitude: -6.2000000, // Outside 100m radius
+      longitude: 106.8000000,
+      accuracy: 10,
+    });
+    assert(
+      !actionResultOutsidePagi.success &&
+        actionResultOutsidePagi.message.includes('di luar radius absensi'),
+      'Server Action → rejects Monday–Thursday Absen Pagi outside 100m radius',
+      `Result message was: "${actionResultOutsidePagi.message}"`
+    );
+
+    // F. Monday–Thursday Absen Pulang without Absen Pagi → must fail
+    const actionResultPulangNoPagi = await absenPulangAction(undefined);
+    assert(
+      !actionResultPulangNoPagi.success &&
+        actionResultPulangNoPagi.message.includes('belum melakukan absen pagi'),
+      'Server Action → rejects Absen Pulang when user has not checked in',
+      `Result message was: "${actionResultPulangNoPagi.message}"`
+    );
+
+    // G. Monday–Thursday Absen Pulang without GPS (undefined) → must succeed (location-independent)
+    process.env.TEST_AUTH_USER_ID = String(testUserAction.id);
+    process.env.DEV_TIME_OVERRIDE = '2026-09-03T17:05:00+07:00';
+    const actionResultPulangNoGps = await absenPulangAction(undefined);
+    assert(
+      actionResultPulangNoGps.success,
+      'Server Action → successfully records Monday–Thursday Absen Pulang without GPS (location-independent)',
+      `Result message was: "${actionResultPulangNoGps.message}"`
+    );
+
+    // Verify record in DB has null checkout location coordinates
+    const attendanceRec = await prisma.attendances.findFirst({
+      where: {
+        person_id: testUserAction.id,
+        date: thursdayDateObj,
+      },
+    });
+    assert(
+      attendanceRec?.check_out !== null && attendanceRec?.latitude_out === null,
+      'Database → Absen Pulang saved with timestamp and null latitude_out',
+      `check_out: ${attendanceRec?.check_out}, latitude_out: ${attendanceRec?.latitude_out}`
+    );
+
+    // H. Monday–Thursday duplicate Absen Pulang → must fail
+    const actionResultDuplicatePulang = await absenPulangAction(undefined);
+    assert(
+      !actionResultDuplicatePulang.success &&
+        actionResultDuplicatePulang.message.includes('sudah melakukan absen pulang'),
+      'Server Action → rejects duplicate Absen Pulang',
+      `Result message was: "${actionResultDuplicatePulang.message}"`
     );
 
     delete process.env.TEST_AUTH_USER_ID;

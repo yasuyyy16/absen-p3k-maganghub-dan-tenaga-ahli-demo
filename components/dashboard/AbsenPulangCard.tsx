@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react';
 import { absenPulangAction } from '@/app/actions/attendance';
 import type { LocationPayload } from '@/lib/types';
-import { getCurrentBrowserLocation } from '@/lib/geolocation';
 import AttendanceConfirmModal from '@/components/dashboard/AttendanceConfirmModal';
 
 interface AbsenPulangCardProps {
@@ -49,45 +48,15 @@ export default function AbsenPulangCard({
   const handleConfirmAbsenPulang = async () => {
     setFeedback(null);
 
-    // On Friday WFA, GPS is not requested and not enforced
-    if (isFriday) {
-      startTransition(async () => {
-        const result = await absenPulangAction(liveLocation ?? undefined);
-        setIsModalOpen(false);
-        if (!result.success) {
-          setFeedback({ type: 'error', message: result.message });
-        } else {
-          setFeedback({ type: 'success', message: result.message });
-        }
-      });
-      return;
-    }
-
-    setIsGeoLoading(true);
-
-    try {
-      const location = liveLocation ?? (await getCurrentBrowserLocation());
-      setIsGeoLoading(false);
-
-      // Submit to Server Action with coordinates
-      startTransition(async () => {
-        const result = await absenPulangAction(location);
-        setIsModalOpen(false);
-        if (!result.success) {
-          setFeedback({ type: 'error', message: result.message });
-        } else {
-          setFeedback({ type: 'success', message: result.message });
-        }
-      });
-    } catch (err: unknown) {
-      setIsGeoLoading(false);
+    startTransition(async () => {
+      const result = await absenPulangAction(liveLocation ?? undefined);
       setIsModalOpen(false);
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : 'Gagal mengambil lokasi GPS. Pastikan izin lokasi aktif.';
-      setFeedback({ type: 'error', message: errorMessage });
-    }
+      if (!result.success) {
+        setFeedback({ type: 'error', message: result.message });
+      } else {
+        setFeedback({ type: 'success', message: result.message });
+      }
+    });
   };
 
   const isBusy = isPending || isGeoLoading;
@@ -106,7 +75,9 @@ export default function AbsenPulangCard({
           )}
         </div>
         <p className="text-xs sm:text-sm text-slate-500">
-          Presensi keluar jam operasional harian berbasis GPS.
+          {isFriday
+            ? 'Presensi keluar jam operasional harian (WFH / Bebas Lokasi).'
+            : 'Presensi keluar jam operasional harian (Bebas Lokasi).'}
         </p>
       </div>
 
@@ -182,6 +153,7 @@ export default function AbsenPulangCard({
         mode="PULANG"
         isGeoLoading={isGeoLoading}
         isPending={isPending}
+        isFriday={isFriday}
       />
     </div>
   );

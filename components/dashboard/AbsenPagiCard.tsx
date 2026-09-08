@@ -115,7 +115,9 @@ export default function AbsenPagiCard({
           )}
         </div>
         <p className="text-xs sm:text-sm text-slate-500">
-          Presensi masuk jam operasional harian berbasis GPS.
+          {isFriday
+            ? 'Presensi masuk jam operasional harian (WFH / Bebas Lokasi).'
+            : 'Presensi masuk jam operasional harian berbasis GPS.'}
         </p>
       </div>
 
@@ -155,6 +157,21 @@ export default function AbsenPagiCard({
         </div>
       ) : (
         <>
+          {/* Monday-Thursday 100m Office Radius Warning Notice */}
+          {!isFriday && !isWindowClosed && !isWeekend && (
+            <div className="mb-3.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium flex items-start gap-2.5">
+              <svg className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+              <div className="space-y-0.5">
+                <span className="font-bold block text-amber-950">Perhatian:</span>
+                <span className="text-amber-800 leading-relaxed block">
+                  Absen pagi hanya dapat dilakukan dalam radius 100 meter dari Gedung Mina Bahari 3. Pastikan Anda berada di area kantor dan izin lokasi/GPS pada browser telah aktif.
+                </span>
+              </div>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleOpenModal}
@@ -200,6 +217,7 @@ export default function AbsenPagiCard({
         mode="PAGI"
         isGeoLoading={isGeoLoading}
         isPending={isPending}
+        isFriday={isFriday}
       />
     </div>
   );

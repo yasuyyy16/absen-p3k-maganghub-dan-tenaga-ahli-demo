@@ -32,11 +32,12 @@ export default function DashboardActionsContainer({
 }: DashboardActionsContainerProps) {
   const [liveLocation, setLiveLocation] = useState<LocationPayload | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(!isFriday && !isCheckedOut);
+  const [isLoading, setIsLoading] = useState(!isFriday && !isCheckedIn);
 
   useEffect(() => {
-    // Friday is WFA: No geolocation watcher is executed, and no GPS is requested.
-    const needsLiveLocation = !isFriday && !isWeekend && !isCheckedOut && !isLeave;
+    // GPS is only needed on Monday-Thursday before Absen Pagi.
+    // Friday is WFA, and Absen Pulang is location-independent.
+    const needsLiveLocation = !isFriday && !isWeekend && !isCheckedIn && !isLeave;
 
     if (!needsLiveLocation) {
       setIsLoading(false);
