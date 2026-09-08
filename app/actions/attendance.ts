@@ -72,7 +72,7 @@ export async function absenPagiAction(
   if (isWibAttendanceWindowClosed(today.dateObj, now)) {
     return {
       success: false,
-      message: 'Waktu absensi hari ini telah berakhir. Absen Pagi tidak dapat dilakukan setelah pukul 23:58 WIB.',
+      message: 'udah gabisa absen lol. Absen Pagi tidak dapat dilakukan setelah pukul 23:58 WIB.',
     };
   }
 
@@ -88,7 +88,7 @@ export async function absenPagiAction(
   if (dayOfWeek === 6 || dayOfWeek === 0) {
     return {
       success: false,
-      message: 'Hari Sabtu dan Minggu merupakan hari libur. Absensi tidak dapat dilakukan.',
+      message: 'Hari Sabtu dan Minggu merupakan hari libur. Jadi ga absen yakh.',
     };
   }
 
@@ -103,14 +103,14 @@ export async function absenPagiAction(
     if (!hasValidGps || !location) {
       return {
         success: false,
-        message: 'Lokasi GPS diperlukan untuk melakukan absen pagi. Pastikan izin lokasi diaktifkan pada browser.',
+        message: 'Nyalain GPS nya woi buat absen pagi. Nyalain izin lokasi di browser.',
       };
     }
 
     if (!isWithinAttendanceRadius(location.latitude, location.longitude)) {
       return {
         success: false,
-        message: 'Anda berada di luar radius absensi. Absensi Senin-Kamis hanya dapat dilakukan dalam radius 100 meter dari Gedung Mina Bahari 3.',
+        message: 'Masuk ke radiusnya dulu mas/mba. Absensi Senin-Kamis cuman bisa dilakukan dalam radius 100 meter dari Gedung Mina Bahari 3.',
       };
     }
   }
@@ -128,7 +128,7 @@ export async function absenPagiAction(
       if (existing.status === 'HADIR') {
         return {
           success: false,
-          message: 'Kamu sudah absen pagi hari ini',
+          message: 'Kamu sudah absen cik pagi hari ini',
         };
       }
       if (existing.status === 'IZIN' || existing.status === 'SAKIT') {
@@ -166,7 +166,7 @@ export async function absenPagiAction(
 
       return {
         success: true,
-        message: 'Absen pagi berhasil dicatat.',
+        message: 'Absen pagi berhasil dicatat bos.',
         checkInFormatted: formatWibTime(updatedRecord.check_in ?? now),
       };
     }
@@ -195,7 +195,7 @@ export async function absenPagiAction(
 
     return {
       success: true,
-      message: 'Absen pagi berhasil dicatat.',
+      message: 'Absen pagi berhasil dicatat bos.',
       checkInFormatted: formatWibTime(newRecord.check_in ?? now),
     };
   } catch (error) {
@@ -205,7 +205,7 @@ export async function absenPagiAction(
     ) {
       return {
         success: false,
-        message: 'Kamu sudah absen pagi hari ini',
+        message: 'Kamu sudah absen cik pagi hari ini',
       };
     }
 
@@ -253,7 +253,7 @@ export async function absenPulangAction(
   if (dayOfWeek === 6 || dayOfWeek === 0) {
     return {
       success: false,
-      message: 'Hari Sabtu dan Minggu merupakan hari libur. Absensi tidak dapat dilakukan.',
+      message: 'Hari Sabtu dan Minggu merupakan hari libur. Jadi ga absen yakh.',
     };
   }
 
@@ -283,14 +283,14 @@ export async function absenPulangAction(
     if (!existing || existing.status !== 'HADIR' || !existing.check_in) {
       return {
         success: false,
-        message: 'Kamu belum melakukan absen pagi hari ini.',
+        message: 'Kamu belum melakukan absen pagi hari ini woila.',
       };
     }
 
     if (existing.check_out) {
       return {
         success: false,
-        message: 'Kamu sudah melakukan absen pulang hari ini.',
+        message: 'Kamu sudah melakukan absen pulang cik hari ini.',
       };
     }
 
@@ -317,7 +317,7 @@ export async function absenPulangAction(
 
     return {
       success: true,
-      message: 'Absen pulang berhasil dicatat.',
+      message: 'Absen pulang berhasil dicatat yeakh.',
       checkOutFormatted: formatWibTime(updated.check_out ?? now),
     };
   } catch (error) {
@@ -664,14 +664,14 @@ export async function catatRapatAction(): Promise<AttendanceActionResult> {
   if (dayOfWeek === 6 || dayOfWeek === 0) {
     return {
       success: false,
-      message: 'Hari Sabtu dan Minggu merupakan hari libur. Absensi tidak dapat dilakukan.',
+      message: 'Hari Sabtu dan Minggu merupakan hari libur. Jadi ga absen yakh.',
     };
   }
 
   if (isWibAttendanceWindowClosed(today.dateObj, now)) {
     return {
       success: false,
-      message: 'Waktu absensi hari ini telah berakhir.',
+      message: 'Waktu absensi hari ini telah berakhir ang ang ang.',
     };
   }
 
