@@ -661,8 +661,35 @@ export async function ubahKeIzinSakitAction(
 /**
  * Server Action to record meeting attendance (Rapat) for the authenticated user.
  * Supports direct Rapat (when no attendance exists) and in-place conversion from HADIR.
+ * Requires mandatory keterangan rapat (description) saved in notes.
  */
-export async function catatRapatAction(): Promise<AttendanceActionResult> {
+export async function catatRapatAction(
+  keteranganOrFormData?: string | FormData
+): Promise<AttendanceActionResult> {
+  let rawKeterangan: string | undefined;
+  if (typeof keteranganOrFormData === 'string') {
+    rawKeterangan = keteranganOrFormData;
+  } else if (keteranganOrFormData instanceof FormData) {
+    rawKeterangan = (
+      keteranganOrFormData.get('keterangan') || keteranganOrFormData.get('notes')
+    )?.toString();
+  }
+
+  const keterangan = rawKeterangan?.trim();
+  if (!keterangan) {
+    return {
+      success: false,
+      message: 'Keterangan rapat wajib diisi.',
+    };
+  }
+
+  if (keterangan.length > 500) {
+    return {
+      success: false,
+      message: 'Keterangan rapat maksimal 500 karakter.',
+    };
+  }
+
   const session = await getSession();
   if (!session) {
     return {
@@ -732,7 +759,7 @@ export async function catatRapatAction(): Promise<AttendanceActionResult> {
             where: { id: existing.id },
             data: {
               status: 'RAPAT',
-              notes: 'Rapat',
+              notes: keterangan,
               check_out: null,
               updated_at: now,
             },
@@ -777,7 +804,7 @@ export async function catatRapatAction(): Promise<AttendanceActionResult> {
           person_id: user.id,
           date: today.dateObj,
           status: 'RAPAT',
-          notes: 'Rapat',
+          notes: keterangan,
           check_in: null,
           check_out: null,
           latitude: null,

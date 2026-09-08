@@ -90,20 +90,42 @@ async function runRapatFeatureTests() {
     // TEST 1: Unauthenticated RAPAT rejected
     // -------------------------------------------------------------------------
     delete process.env.TEST_AUTH_USER_ID;
-    const unauthResult = await catatRapatAction();
+    const unauthResult = await catatRapatAction('Rapat unauth');
     assert(
       !unauthResult.success && unauthResult.message.includes('Sesi login'),
       'TEST 1: Unauthenticated RAPAT rejected'
     );
 
     // -------------------------------------------------------------------------
-    // TEST 2: No attendance -> RAPAT succeeds
+    // TEST 1B: Empty / whitespace / oversize keterangan rejected
     // -------------------------------------------------------------------------
     process.env.TEST_AUTH_USER_ID = primaryUser.id.toString();
-    const directRapatResult = await catatRapatAction();
+    const emptyResult = await catatRapatAction();
+    assert(
+      !emptyResult.success && emptyResult.message === 'Keterangan rapat wajib diisi.',
+      'TEST 1B: Empty keterangan rejected'
+    );
+
+    const whitespaceResult = await catatRapatAction('   ');
+    assert(
+      !whitespaceResult.success && whitespaceResult.message === 'Keterangan rapat wajib diisi.',
+      'TEST 1C: Whitespace-only keterangan rejected'
+    );
+
+    const oversizedResult = await catatRapatAction('a'.repeat(501));
+    assert(
+      !oversizedResult.success && oversizedResult.message === 'Keterangan rapat maksimal 500 karakter.',
+      'TEST 1D: Oversized keterangan rejected'
+    );
+
+    // -------------------------------------------------------------------------
+    // TEST 2: No attendance -> RAPAT succeeds with valid keterangan
+    // -------------------------------------------------------------------------
+    const testKeteranganPrimary = 'Rapat koordinasi teknis penyusunan kurikulum magang';
+    const directRapatResult = await catatRapatAction(testKeteranganPrimary);
     assert(
       directRapatResult.success && directRapatResult.message.includes('berhasil dicatat'),
-      'TEST 2: No attendance -> RAPAT succeeds',
+      'TEST 2: No attendance -> RAPAT succeeds with valid keterangan',
       directRapatResult.message
     );
 
@@ -130,13 +152,14 @@ async function runRapatFeatureTests() {
     );
 
     // -------------------------------------------------------------------------
-    // TEST 4: Direct RAPAT record has check_in = NULL
+    // TEST 4: Direct RAPAT record has check_in = NULL, check_out = NULL, notes = keterangan
     // -------------------------------------------------------------------------
     assert(
       directRecord?.status === 'RAPAT' &&
         directRecord?.check_in === null &&
-        directRecord?.check_out === null,
-      'TEST 4: Direct RAPAT record has check_in = NULL (and check_out = NULL)'
+        directRecord?.check_out === null &&
+        directRecord?.notes === testKeteranganPrimary,
+      'TEST 4: Direct RAPAT record has check_in = NULL, check_out = NULL, notes = keterangan'
     );
 
     // -------------------------------------------------------------------------
@@ -189,16 +212,25 @@ async function runRapatFeatureTests() {
       },
     });
 
-    // Authenticate as hadirUser and invoke catatRapatAction
+    // Authenticate as hadirUser
     process.env.TEST_AUTH_USER_ID = hadirUser.id.toString();
-    const hadirToRapatResult = await catatRapatAction();
+
+    // Verify empty keterangan rejected for HADIR -> RAPAT as well
+    const emptyHadirRapat = await catatRapatAction('   ');
+    assert(
+      !emptyHadirRapat.success && emptyHadirRapat.message === 'Keterangan rapat wajib diisi.',
+      'TEST 5B: HADIR -> RAPAT without keterangan rejected'
+    );
+
+    const testKeteranganHadir = 'Rapat evaluasi progres bulanan di kantor dinas';
+    const hadirToRapatResult = await catatRapatAction(testKeteranganHadir);
 
     // -------------------------------------------------------------------------
-    // TEST 6: HADIR -> RAPAT succeeds
+    // TEST 6: HADIR -> RAPAT succeeds with valid keterangan
     // -------------------------------------------------------------------------
     assert(
       hadirToRapatResult.success && hadirToRapatResult.message.includes('berhasil dicatat'),
-      'TEST 6: HADIR -> RAPAT succeeds',
+      'TEST 6: HADIR -> RAPAT succeeds with valid keterangan',
       hadirToRapatResult.message
     );
 
@@ -225,13 +257,14 @@ async function runRapatFeatureTests() {
     );
 
     // -------------------------------------------------------------------------
-    // TEST 8: HADIR -> RAPAT preserves check_in exactly
+    // TEST 8: HADIR -> RAPAT preserves check_in exactly and updates notes
     // -------------------------------------------------------------------------
     assert(
       convertedRecord?.status === 'RAPAT' &&
         convertedRecord?.check_in !== null &&
-        convertedRecord?.check_in.getTime() === originalCheckIn.getTime(),
-      'TEST 8: HADIR -> RAPAT preserves check_in exactly'
+        convertedRecord?.check_in.getTime() === originalCheckIn.getTime() &&
+        convertedRecord?.notes === testKeteranganHadir,
+      'TEST 8: HADIR -> RAPAT preserves check_in exactly and updates notes'
     );
 
     // -------------------------------------------------------------------------
@@ -278,7 +311,7 @@ async function runRapatFeatureTests() {
     // TEST 14: RAPAT -> RAPAT rejected
     // -------------------------------------------------------------------------
     // Authenticated as hadirUser (whose status is now RAPAT)
-    const repeatRapatResult = await catatRapatAction();
+    const repeatRapatResult = await catatRapatAction('Rapat coba lagi');
     assert(
       !repeatRapatResult.success &&
         (repeatRapatResult.message.includes('sudah tercatat') ||
@@ -312,7 +345,7 @@ async function runRapatFeatureTests() {
       },
     });
     process.env.TEST_AUTH_USER_ID = izinUser.id.toString();
-    const rapatOnIzinResult = await catatRapatAction();
+    const rapatOnIzinResult = await catatRapatAction('Rapat izin');
     assert(
       !rapatOnIzinResult.success &&
         (rapatOnIzinResult.message.includes('Izin') ||
@@ -346,7 +379,7 @@ async function runRapatFeatureTests() {
       },
     });
     process.env.TEST_AUTH_USER_ID = sakitUser.id.toString();
-    const rapatOnSakitResult = await catatRapatAction();
+    const rapatOnSakitResult = await catatRapatAction('Rapat sakit');
     assert(
       !rapatOnSakitResult.success &&
         (rapatOnSakitResult.message.includes('Sakit') ||
@@ -379,7 +412,7 @@ async function runRapatFeatureTests() {
       },
     });
     process.env.TEST_AUTH_USER_ID = alfaUser.id.toString();
-    const rapatOnAlfaResult = await catatRapatAction();
+    const rapatOnAlfaResult = await catatRapatAction('Rapat alfa');
     assert(
       !rapatOnAlfaResult.success &&
         (rapatOnAlfaResult.message.includes('Alfa') ||
@@ -438,27 +471,29 @@ async function runRapatFeatureTests() {
     );
 
     // -------------------------------------------------------------------------
-    // TEST 21: History correctly returns direct RAPAT with null check_in
+    // TEST 21: History correctly returns direct RAPAT with null check_in and keterangan
     // -------------------------------------------------------------------------
     const primaryHistory = await getAttendanceHistory(primaryUser.id, todayParts.dateString.slice(0, 7));
     const primaryHistoryItem = primaryHistory.items.find((item) => item.id === directRecord?.id);
     assert(
       primaryHistoryItem?.status === 'RAPAT' &&
         primaryHistoryItem?.checkInFormatted === null &&
-        primaryHistoryItem?.checkOutFormatted === null,
-      'TEST 21: History correctly returns direct RAPAT with null check_in'
+        primaryHistoryItem?.checkOutFormatted === null &&
+        primaryHistoryItem?.notes === testKeteranganPrimary,
+      'TEST 21: History correctly returns direct RAPAT with null check_in and keterangan'
     );
 
     // -------------------------------------------------------------------------
-    // TEST 22: History correctly returns converted RAPAT with original check_in
+    // TEST 22: History correctly returns converted RAPAT with original check_in and keterangan
     // -------------------------------------------------------------------------
     const hadirHistory = await getAttendanceHistory(hadirUser.id, todayParts.dateString.slice(0, 7));
     const hadirHistoryItem = hadirHistory.items.find((item) => item.id === initialHadirRecord.id);
     assert(
       hadirHistoryItem?.status === 'RAPAT' &&
         hadirHistoryItem?.checkInFormatted !== null &&
-        hadirHistoryItem?.checkOutFormatted === null,
-      'TEST 22: History correctly returns converted RAPAT with original check_in'
+        hadirHistoryItem?.checkOutFormatted === null &&
+        hadirHistoryItem?.notes === testKeteranganHadir,
+      'TEST 22: History correctly returns converted RAPAT with original check_in and keterangan'
     );
 
     // -------------------------------------------------------------------------

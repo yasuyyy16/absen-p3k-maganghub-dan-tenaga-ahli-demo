@@ -177,7 +177,7 @@ async function runTests() {
       `Expected message about profile completion, got: ${izinResult.message}`
     );
 
-    const rapatResult = await catatRapatAction();
+    const rapatResult = await catatRapatAction('Rapat testing onboarding');
     assert.strictEqual(rapatResult.success, false);
     assert.ok(
       rapatResult.message.includes('lengkapi profil'),

@@ -9,6 +9,7 @@ interface AktivitasKhususSectionProps {
   entryMode: 'NO_ATTENDANCE' | 'FROM_HADIR' | null;
   blockedReason?: string | null;
   checkInTimeFormatted?: string | null;
+  notes?: string | null;
   isWeekend?: boolean;
   isWindowClosed?: boolean;
 }
@@ -19,17 +20,21 @@ export default function AktivitasKhususSection({
   entryMode,
   blockedReason,
   checkInTimeFormatted,
+  notes,
   isWeekend = false,
   isWindowClosed = false,
 }: AktivitasKhususSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [keterangan, setKeterangan] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isModalOpen && !isPending) {
         setIsModalOpen(false);
+        setKeterangan('');
+        setErrorMessage(null);
       }
     };
 
@@ -45,13 +50,24 @@ export default function AktivitasKhususSection({
   }, [isModalOpen, isPending]);
 
   const handleConfirmRapat = () => {
+    const trimmed = keterangan.trim();
+    if (!trimmed) {
+      setErrorMessage('Keterangan rapat wajib diisi.');
+      return;
+    }
+    if (trimmed.length > 500) {
+      setErrorMessage('Keterangan rapat maksimal 500 karakter.');
+      return;
+    }
+
     setErrorMessage(null);
     startTransition(async () => {
-      const result = await catatRapatAction();
+      const result = await catatRapatAction(trimmed);
       if (!result.success) {
         setErrorMessage(result.message);
       } else {
         setIsModalOpen(false);
+        setKeterangan('');
       }
     });
   };
@@ -100,9 +116,15 @@ export default function AktivitasKhususSection({
               </div>
               <div>
                 <span className="text-teal-700/90">Jam Pulang: </span>
-                <span className="font-mono text-teal-600">-</span>
+                <span className="font-semibold text-teal-950 font-sans">Rapat</span>
               </div>
             </div>
+            {notes && notes.trim() !== '' && (
+              <div className="pt-2 text-xs text-teal-900 border-t border-teal-200/60 mt-2">
+                <span className="font-semibold text-teal-950">Keterangan: </span>
+                <span className="text-teal-800 break-words">{notes}</span>
+              </div>
+            )}
           </div>
         </div>
       ) : canSelectRapat ? (
@@ -121,6 +143,7 @@ export default function AktivitasKhususSection({
             <button
               type="button"
               onClick={() => {
+                setKeterangan('');
                 setErrorMessage(null);
                 setIsModalOpen(true);
               }}
@@ -154,6 +177,8 @@ export default function AktivitasKhususSection({
           onClick={(e) => {
             if (e.target === e.currentTarget && !isPending) {
               setIsModalOpen(false);
+              setKeterangan('');
+              setErrorMessage(null);
             }
           }}
         >
@@ -167,7 +192,13 @@ export default function AktivitasKhususSection({
               </h3>
               <button
                 type="button"
-                onClick={() => !isPending && setIsModalOpen(false)}
+                onClick={() => {
+                  if (!isPending) {
+                    setIsModalOpen(false);
+                    setKeterangan('');
+                    setErrorMessage(null);
+                  }
+                }}
                 disabled={isPending}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 cursor-pointer disabled:opacity-50"
                 aria-label="Tutup dialog konfirmasi"
@@ -189,6 +220,35 @@ export default function AktivitasKhususSection({
               </p>
             </div>
 
+            {/* Keterangan Rapat Input */}
+            <div className="space-y-1.5 pt-1">
+              <label
+                htmlFor="keterangan-rapat"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-700"
+              >
+                Keterangan Rapat <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="keterangan-rapat"
+                value={keterangan}
+                onChange={(e) => {
+                  setKeterangan(e.target.value);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+                placeholder="Contoh: Rapat koordinasi dengan tim pengelola P3K di luar kantor."
+                rows={3}
+                maxLength={500}
+                disabled={isPending}
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-600 disabled:bg-slate-50 disabled:text-slate-400 placeholder:text-slate-400 resize-none transition"
+                required
+                aria-required="true"
+              />
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>Keterangan ini wajib diisi.</span>
+                <span>{keterangan.length}/500</span>
+              </div>
+            </div>
+
             {errorMessage && (
               <div
                 role="alert"
@@ -202,7 +262,11 @@ export default function AktivitasKhususSection({
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setKeterangan('');
+                  setErrorMessage(null);
+                }}
                 disabled={isPending}
                 className="min-h-[44px] px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer disabled:opacity-50"
               >

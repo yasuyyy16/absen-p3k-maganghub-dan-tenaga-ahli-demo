@@ -280,6 +280,7 @@ export default async function DashboardPage() {
         entryMode={rapatEntryMode}
         blockedReason={rapatBlockedReason}
         checkInTimeFormatted={checkInTimeFormatted}
+        notes={todayAttendance?.notes ?? null}
         isWeekend={isWeekend}
         isWindowClosed={isWindowClosed}
       />

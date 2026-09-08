@@ -70,14 +70,18 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                       )}
                     </td>
 
-                    <td className="py-3.5 px-4 font-mono text-slate-700 whitespace-nowrap">
-                      {item.checkOutFormatted ? (
-                        <span className="flex items-center gap-1.5 text-sky-700 font-medium">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      {item.status === 'RAPAT' ? (
+                        <span className="font-sans font-semibold text-teal-800 text-xs">
+                          Rapat
+                        </span>
+                      ) : item.checkOutFormatted ? (
+                        <span className="flex items-center gap-1.5 text-sky-700 font-mono font-medium">
                           <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
                           {item.checkOutFormatted}
                         </span>
                       ) : (
-                        <span className="text-slate-400 italic">-</span>
+                        <span className="text-slate-400 italic text-xs">-</span>
                       )}
                     </td>
 
@@ -169,9 +173,15 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                     <span className="text-[10px] uppercase font-semibold text-slate-500 block mb-0.5">
                       Check-out
                     </span>
-                    <span className="font-mono font-medium text-slate-800">
-                      {item.checkOutFormatted ?? '-'}
-                    </span>
+                    {item.status === 'RAPAT' ? (
+                      <span className="font-sans font-semibold text-teal-800">
+                        Rapat
+                      </span>
+                    ) : (
+                      <span className="font-mono font-medium text-slate-800">
+                        {item.checkOutFormatted ?? '-'}
+                      </span>
+                    )}
                   </div>
                 </div>
 
