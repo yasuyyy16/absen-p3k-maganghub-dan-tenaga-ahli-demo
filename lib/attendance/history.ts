@@ -4,12 +4,60 @@ import {
   getMonthDateRange,
   getCurrentWibMonth,
   formatWibDateLong,
+  formatDateOnlyLong,
   formatWibTime,
 } from '@/lib/time';
-import { AttendanceHistoryItem, AttendanceHistoryResult } from '@/lib/types';
+import {
+  AttendanceHistoryItem,
+  AttendanceHistoryResult,
+  SuratTugasHistoryDetails,
+} from '@/lib/types';
 import { resolveProofUrl } from '@/lib/attendance-proof';
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+export function formatSuratTugasPeriod(
+  start: Date | string,
+  end: Date | string
+): string {
+  const startDate = typeof start === 'string' ? new Date(start) : start;
+  const endDate = typeof end === 'string' ? new Date(end) : end;
+  if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return '-';
+  }
+
+  const formatter = new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+  const startParts = formatter.formatToParts(startDate);
+  const endParts = formatter.formatToParts(endDate);
+  const getPart = (parts: Intl.DateTimeFormatPart[], type: string) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+
+  const startDay = getPart(startParts, 'day');
+  const startMonth = getPart(startParts, 'month');
+  const startYear = getPart(startParts, 'year');
+  const endDay = getPart(endParts, 'day');
+  const endMonth = getPart(endParts, 'month');
+  const endYear = getPart(endParts, 'year');
+
+  if (startDay === endDay && startMonth === endMonth && startYear === endYear) {
+    return `${startDay} ${startMonth} ${startYear}`;
+  }
+
+  if (startYear === endYear && startMonth === endMonth) {
+    return `${startDay}–${endDay} ${startMonth} ${startYear}`;
+  }
+
+  if (startYear === endYear) {
+    return `${startDay} ${startMonth} – ${endDay} ${endMonth} ${startYear}`;
+  }
+
+  return `${startDay} ${startMonth} ${startYear} – ${endDay} ${endMonth} ${endYear}`;
+}
 
 /**
  * Loads paginated attendance history for a specific user/person in a given WIB month.
@@ -62,46 +110,83 @@ export async function getAttendanceHistory(
     },
   };
 
-  const [rawRecords, totalCount] = await Promise.all([
-    prisma.attendances.findMany({
+  const rawRecords = await prisma.attendances.findMany({
       where,
       orderBy: [
         { date: 'desc' },
         { id: 'desc' },
       ],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.attendances.count({ where }),
-  ]);
+      include: {
+        surat_tugas: {
+          include: {
+            user: {
+              select: { id: true, nama: true, username: true },
+            },
+          },
+        },
+      },
+    });
 
-  const items: AttendanceHistoryItem[] = rawRecords.map((rec) => ({
-    id: rec.id,
-    date: rec.date,
-    dateFormatted: formatWibDateLong(rec.date),
-    checkInFormatted: rec.check_in ? formatWibTime(rec.check_in) : null,
-    checkOutFormatted: rec.check_out ? formatWibTime(rec.check_out) : null,
-    status: rec.status,
-    notes: rec.notes,
-    latitude: rec.latitude,
-    longitude: rec.longitude,
-    accuracy: rec.accuracy,
-    address: rec.address,
-    latitude_out: rec.latitude_out,
-    longitude_out: rec.longitude_out,
-    accuracy_out: rec.accuracy_out,
-    address_out: rec.address_out,
-    proof_file_url: resolveProofUrl(rec.proof_file_url),
-  }));
+  const rawItems: AttendanceHistoryItem[] = rawRecords.map((rec) => ({
+      id: rec.id,
+      date: rec.date,
+      dateFormatted: rec.status === 'SURAT_TUGAS' && rec.surat_tugas
+        ? formatSuratTugasPeriod(rec.surat_tugas.mulai_tugas, rec.surat_tugas.selesai_tugas)
+        : formatWibDateLong(rec.date),
+      checkInFormatted: rec.check_in ? formatWibTime(rec.check_in) : null,
+      checkOutFormatted: rec.check_out ? formatWibTime(rec.check_out) : null,
+      status: rec.status,
+      notes: rec.notes,
+      latitude: rec.latitude,
+      longitude: rec.longitude,
+      accuracy: rec.accuracy,
+      address: rec.address,
+      latitude_out: rec.latitude_out,
+      longitude_out: rec.longitude_out,
+      accuracy_out: rec.accuracy_out,
+      address_out: rec.address_out,
+      proof_file_url: resolveProofUrl(rec.proof_file_url),
+      surat_tugas_id: rec.surat_tugas_id,
+      surat_tugas: rec.surat_tugas as SuratTugasHistoryDetails | null,
+    }));
+
+  const items = consolidateAttendanceHistory(rawItems);
+  const totalCount = items.length;
+  const paginatedItems = items.slice((page - 1) * pageSize, page * pageSize);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return {
-    items,
+    items: paginatedItems,
     totalCount,
     page,
     pageSize,
     totalPages,
     selectedMonth,
   };
+}
+
+export function consolidateAttendanceHistory(
+  items: AttendanceHistoryItem[]
+): AttendanceHistoryItem[] {
+  const displayed: AttendanceHistoryItem[] = [];
+  const groupedSuratTugas = new Set<string>();
+
+  for (const item of items) {
+    if (
+      item.status === 'SURAT_TUGAS' &&
+      item.surat_tugas_id &&
+      item.surat_tugas
+    ) {
+      if (!groupedSuratTugas.has(item.surat_tugas_id)) {
+        groupedSuratTugas.add(item.surat_tugas_id);
+        displayed.push(item);
+      }
+      continue;
+    }
+
+    displayed.push(item);
+  }
+
+  return displayed;
 }

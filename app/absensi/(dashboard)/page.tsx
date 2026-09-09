@@ -16,7 +16,6 @@ import {
 import { PersonDetails, PersonnelType } from '@/lib/types';
 import UserProfileCard from '@/components/dashboard/UserProfileCard';
 import LiveClockCard from '@/components/dashboard/LiveClockCard';
-import AttendanceStatusBadge from '@/components/dashboard/AttendanceStatusBadge';
 import AbsenPagiCard from '@/components/dashboard/AbsenPagiCard';
 import AbsenPulangCard from '@/components/dashboard/AbsenPulangCard';
 import ReminderAlert from '@/components/dashboard/ReminderAlert';
@@ -28,9 +27,14 @@ import FridayWfhBanner from '@/components/dashboard/FridayWfhBanner';
 import WeekendHolidayBanner from '@/components/dashboard/WeekendHolidayBanner';
 import DashboardActionsContainer from '@/components/dashboard/DashboardActionsContainer';
 import AktivitasKhususSection from '@/components/dashboard/AktivitasKhususSection';
+import ActivityLogSection from '@/components/dashboard/ActivityLogSection';
 import { resolveProofUrl } from '@/lib/attendance-proof';
 
-export default async function DashboardPage() {
+interface DashboardPageProps {
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const session = await getSession();
 
   if (!session || session.role !== 'VIEWER') {
@@ -86,6 +90,13 @@ export default async function DashboardPage() {
       person_id: user.id,
       date: todayParts.dateObj,
     },
+  });
+
+  // Query user activities
+  const recentActivities = await prisma.user_activities.findMany({
+    where: { user_id: user.id },
+    orderBy: { created_at: 'desc' },
+    take: 5,
   });
 
   // Check if the attendance window for today has closed (>= 23:59:00 WIB)
@@ -196,6 +207,31 @@ export default async function DashboardPage() {
         personDetails={personDetails}
       />
 
+      {/* Success Notification Banner */}
+      {searchParams?.success === 'surat_tugas' && (
+        <div
+          role="alert"
+          className="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 sm:p-5 flex items-center gap-3.5 shadow-xs text-emerald-950 animate-in fade-in slide-in-from-top-2 duration-300"
+        >
+          <div
+            className="w-8 h-8 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center shrink-0"
+            aria-hidden="true"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
+          <div className="space-y-0.5 flex-1 min-w-0">
+            <p className="text-sm sm:text-base font-bold text-emerald-950">
+              Surat Tugas berhasil dicatat.
+            </p>
+            <p className="text-xs text-emerald-800 font-medium">
+              Riwayat dan absensi Anda untuk tanggal tersebut telah disesuaikan.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Password Change Warning Banner */}
       {user.must_change_password && (
         <div
@@ -236,7 +272,24 @@ export default async function DashboardPage() {
       <LiveClockCard
         initialDateFormatted={dateFormattedLong}
         initialTimeFormatted={timeParts.timeFormatted}
+        workStatus={currentBadgeStatus}
         isDevTimeOverride={isDevTimeOverrideActive()}
+      />
+
+      {/* Aktivitas Terbaru */}
+      <ActivityLogSection activities={recentActivities} />
+
+      {/* Lokasi Absensi and attendance actions */}
+      <DashboardActionsContainer
+        isCheckedIn={isCheckedIn}
+        checkInTimeFormatted={checkInTimeFormatted}
+        isCheckedOut={isCheckedOut}
+        checkOutTimeFormatted={checkOutTimeFormatted}
+        isLeave={isLeave}
+        isWeekend={isWeekend}
+        isWindowClosed={isWindowClosed}
+        isFriday={isFriday}
+        todayAttendance={todayAttendance}
       />
 
       {/* Late Checkout Reminder Banner */}
@@ -259,20 +312,6 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* Today's Status Header */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-xs">
-        <div>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
-            Status Hari Ini
-          </span>
-          <span className="text-xs sm:text-sm font-medium text-slate-700">
-            {todayParts.dateString}
-          </span>
-        </div>
-
-        <AttendanceStatusBadge status={currentBadgeStatus} />
-      </div>
-
       {/* Aktivitas Khusus (Rapat) */}
       <AktivitasKhususSection
         isRapat={isRapat}
@@ -288,19 +327,6 @@ export default async function DashboardPage() {
       {/* Friday WFH / Weekend Holiday Indicators */}
       {isFriday && !isLeave && !isRapat && <FridayWfhBanner />}
       {isWeekend && !isLeave && !isRapat && <WeekendHolidayBanner />}
-
-      {/* Attendance Actions & Map Tracking */}
-      <DashboardActionsContainer
-        isCheckedIn={isCheckedIn}
-        checkInTimeFormatted={checkInTimeFormatted}
-        isCheckedOut={isCheckedOut}
-        checkOutTimeFormatted={checkOutTimeFormatted}
-        isLeave={isLeave}
-        isWeekend={isWeekend}
-        isWindowClosed={isWindowClosed}
-        isFriday={isFriday}
-        todayAttendance={todayAttendance}
-      />
 
       {/* Initial Izin / Sakit Action Trigger */}
       {isNotRecorded && !isRapat && (

@@ -43,8 +43,11 @@ model attendances {
   accuracy_out  Float?
   address_out   String?
   proof_file_url String?
+  surat_tugas_id String?
   created_at    DateTime         @default(now())
   updated_at    DateTime
+
+  surat_tugas   surat_tugas?     @relation(fields: [surat_tugas_id], references: [id], onDelete: SetNull)
 
   @@unique([person_type, person_id, date])
   @@index([date])
@@ -193,6 +196,8 @@ model users {
   universitas    String?
   nip            String?    @unique
   sessions       sessions[]
+  surat_tugas    surat_tugas[]
+  user_activities user_activities[]
 }
 
 enum AttendanceStatus {
@@ -201,6 +206,7 @@ enum AttendanceStatus {
   SAKIT
   ALFA
   RAPAT
+  SURAT_TUGAS
 }
 
 enum EmployeeStatus {
@@ -217,4 +223,34 @@ enum Role {
   ADMIN
   STAFF
   VIEWER
+}
+
+model surat_tugas {
+  id                String       @id @default(uuid())
+  user_id           Int
+  nomor_surat_tugas String
+  tanggal_terbit    DateTime     @db.Date
+  mulai_tugas       DateTime     @db.Date
+  selesai_tugas     DateTime     @db.Date
+  lokasi            String       @db.Text
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+
+  user              users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  attendances       attendances[]
+
+  @@index([user_id])
+}
+
+model user_activities {
+  id          String   @id @default(uuid())
+  user_id     Int
+  title       String
+  description String
+  created_at  DateTime @default(now())
+
+  user        users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([created_at(sort: Desc)])
 }

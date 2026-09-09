@@ -67,6 +67,26 @@ export default function DashboardActionsContainer({
 
   return (
     <div className="space-y-5 sm:space-y-6">
+      {/* Map Preview (Live or Recorded) */}
+      {!isRapat && (
+        <AttendanceLocationCard
+          latitude={todayAttendance?.latitude ?? null}
+          longitude={todayAttendance?.longitude ?? null}
+          accuracy={todayAttendance?.accuracy ?? null}
+          address={todayAttendance?.address ?? null}
+          latitudeOut={todayAttendance?.latitude_out ?? null}
+          longitudeOut={todayAttendance?.longitude_out ?? null}
+          accuracyOut={todayAttendance?.accuracy_out ?? null}
+          addressOut={todayAttendance?.address_out ?? null}
+          isFriday={isFriday}
+          liveLatitude={liveLocation?.latitude}
+          liveLongitude={liveLocation?.longitude}
+          liveAccuracy={liveLocation?.accuracy}
+          isLiveLoading={isLoading}
+          liveError={liveError}
+        />
+      )}
+
       {/* Attendance Actions Grid */}
       {!isLeave && !isRapat && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
@@ -92,26 +112,6 @@ export default function DashboardActionsContainer({
             liveError={liveError}
           />
         </div>
-      )}
-
-      {/* Map Preview (Live or Recorded) */}
-      {!isRapat && (
-        <AttendanceLocationCard
-          latitude={todayAttendance?.latitude ?? null}
-          longitude={todayAttendance?.longitude ?? null}
-          accuracy={todayAttendance?.accuracy ?? null}
-          address={todayAttendance?.address ?? null}
-          latitudeOut={todayAttendance?.latitude_out ?? null}
-          longitudeOut={todayAttendance?.longitude_out ?? null}
-          accuracyOut={todayAttendance?.accuracy_out ?? null}
-          addressOut={todayAttendance?.address_out ?? null}
-          isFriday={isFriday}
-          liveLatitude={liveLocation?.latitude}
-          liveLongitude={liveLocation?.longitude}
-          liveAccuracy={liveLocation?.accuracy}
-          isLiveLoading={isLoading}
-          liveError={liveError}
-        />
       )}
     </div>
   );

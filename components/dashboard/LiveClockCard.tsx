@@ -1,16 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import AttendanceStatusBadge from '@/components/dashboard/AttendanceStatusBadge';
 
 interface LiveClockCardProps {
   initialDateFormatted: string;
   initialTimeFormatted: string;
+  workStatus: string;
   isDevTimeOverride?: boolean;
 }
 
 export default function LiveClockCard({
   initialDateFormatted,
   initialTimeFormatted,
+  workStatus,
   isDevTimeOverride = false,
 }: LiveClockCardProps) {
   const [timeFormatted, setTimeFormatted] = useState(initialTimeFormatted);
@@ -51,29 +54,35 @@ export default function LiveClockCard({
 
   const displayTime = isDevTimeOverride ? initialTimeFormatted : timeFormatted;
   const displayDate = isDevTimeOverride ? initialDateFormatted : dateFormatted;
+  const displayTimeWithoutZone = displayTime.replace(/\s+WIB$/, '');
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center relative overflow-hidden">
+    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
       {/* Background ambient accent */}
       <div className="absolute inset-0 bg-radial-[at_top] from-sky-50/50 via-transparent to-transparent pointer-events-none" />
 
-      <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
-        Waktu Operasional
-      </span>
+      <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 sm:gap-6">
+        <div className="min-w-0 text-left">
+          <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">
+            Tanggal
+          </span>
+          <p className="text-sm sm:text-base font-medium text-slate-700 truncate">
+            {displayDate}
+          </p>
+          <h1 className="text-4xl sm:text-5xl font-bold font-mono tracking-tight text-[#006194] mt-2">
+            {displayTimeWithoutZone}
+          </h1>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">
+            WIB (Waktu Indonesia Barat)
+          </p>
+        </div>
 
-      <h1 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight text-[#006194] my-1">
-        {displayTime}
-      </h1>
-
-      <p className="text-sm sm:text-base font-medium text-slate-700 mt-1">
-        {displayDate}
-      </p>
-
-      <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/60 text-xs text-slate-600 font-medium">
-        <svg className="w-3.5 h-3.5 text-[#006194]" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-        </svg>
-        <span>Asia/Jakarta (WIB)</span>
+        <div className="shrink-0 lg:text-right">
+          <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-2">
+            Status Kerja
+          </span>
+          <AttendanceStatusBadge status={workStatus} />
+        </div>
       </div>
     </div>
   );

@@ -60,6 +60,10 @@ export default function AttendanceStatusBadge({
     label = 'Rapat';
     badgeStyle = 'bg-teal-50 text-teal-900 border-teal-200/80';
     dotStyle = 'bg-teal-600';
+  } else if (effectiveStatus === 'SURAT_TUGAS') {
+    label = 'Surat Tugas';
+    badgeStyle = 'bg-indigo-50 text-indigo-900 border-indigo-200/80';
+    dotStyle = 'bg-indigo-600';
   }
 
   return (

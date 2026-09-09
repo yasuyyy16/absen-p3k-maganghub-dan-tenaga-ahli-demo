@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { AttendanceHistoryItem } from '@/lib/types';
 import AttendanceStatusBadge from '@/components/dashboard/AttendanceStatusBadge';
 import LocationModal from '@/components/history/LocationModal';
+import SuratTugasDetailModal from '@/components/history/SuratTugasDetailModal';
+import DeleteSuratTugasModal from '@/components/history/DeleteSuratTugasModal';
 
 interface HistoryTableProps {
   items: AttendanceHistoryItem[];
@@ -11,6 +13,8 @@ interface HistoryTableProps {
 
 export default function HistoryTable({ items }: HistoryTableProps) {
   const [selectedRecord, setSelectedRecord] = useState<AttendanceHistoryItem | null>(null);
+  const [deletingRecord, setDeletingRecord] = useState<AttendanceHistoryItem | null>(null);
+  const [successNotification, setSuccessNotification] = useState<string | null>(null);
 
   if (items.length === 0) {
     return (
@@ -32,6 +36,32 @@ export default function HistoryTable({ items }: HistoryTableProps) {
 
   return (
     <>
+      {successNotification && (
+        <div
+          role="alert"
+          className="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xs text-emerald-950 animate-in fade-in slide-in-from-top-2 duration-300 mb-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center shrink-0">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+            <p className="text-xs sm:text-sm font-bold text-emerald-950">
+              {successNotification}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessNotification(null)}
+            className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold cursor-pointer p-1"
+            aria-label="Tutup notifikasi"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs overflow-hidden">
         {/* Desktop Table View (md and above) */}
         <div className="hidden md:block overflow-x-auto">
@@ -42,7 +72,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                 <th className="py-3.5 px-4 whitespace-nowrap">Check-in</th>
                 <th className="py-3.5 px-4 whitespace-nowrap">Check-out</th>
                 <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Lokasi GPS</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Aksi / Lokasi</th>
                 <th className="py-3.5 px-4 min-w-[160px]">Keterangan</th>
                 <th className="py-3.5 px-4 whitespace-nowrap">Bukti</th>
               </tr>
@@ -93,9 +123,26 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                       />
                     </td>
 
-                    {/* Location Column */}
+                    {/* Location / Action Column */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      {hasLocation ? (
+                      {item.status === 'SURAT_TUGAS' ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRecord(item)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-xs font-semibold transition-colors cursor-pointer"
+                          >
+                            Detail
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingRecord(item)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 text-xs font-semibold transition-colors cursor-pointer"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      ) : hasLocation ? (
                         <button
                           type="button"
                           onClick={() => setSelectedRecord(item)}
@@ -185,8 +232,25 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                   </div>
                 </div>
 
-                {/* Location row on mobile */}
-                {hasLocation && (
+                {/* Location / Action row on mobile */}
+                {item.status === 'SURAT_TUGAS' ? (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRecord(item)}
+                      className="min-h-[36px] w-full rounded-lg bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 cursor-pointer text-center border border-indigo-200"
+                    >
+                      Detail
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingRecord(item)}
+                      className="min-h-[36px] w-full rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 cursor-pointer text-center border border-red-200"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                ) : hasLocation ? (
                   <div className="flex items-center justify-between gap-2 pt-0.5">
                     <span className="text-xs text-slate-500 truncate flex-1 min-w-0">
                       {item.address || item.address_out || 'Titik GPS tersimpan'}
@@ -199,7 +263,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                       Lihat Lokasi
                     </button>
                   </div>
-                )}
+                ) : null}
 
                 {item.notes && (
                   <div className="text-xs text-slate-600 pt-0.5">
@@ -231,9 +295,18 @@ export default function HistoryTable({ items }: HistoryTableProps) {
 
       {/* Location Modal */}
       <LocationModal
-        isOpen={Boolean(selectedRecord)}
+        isOpen={Boolean(selectedRecord && selectedRecord.status !== 'SURAT_TUGAS')}
         onClose={() => setSelectedRecord(null)}
-        record={selectedRecord}
+        record={selectedRecord?.status === 'SURAT_TUGAS' ? null : selectedRecord}
+      />
+      <SuratTugasDetailModal
+        record={selectedRecord?.status === 'SURAT_TUGAS' ? selectedRecord : null}
+        onClose={() => setSelectedRecord(null)}
+      />
+      <DeleteSuratTugasModal
+        record={deletingRecord}
+        onClose={() => setDeletingRecord(null)}
+        onSuccess={() => setSuccessNotification('Surat Tugas berhasil dihapus.')}
       />
     </>
   );

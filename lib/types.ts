@@ -149,6 +149,23 @@ export interface AttendanceHistoryItem {
   accuracy_out: number | null;
   address_out: string | null;
   proof_file_url: string | null;
+  surat_tugas_id: string | null;
+  surat_tugas: SuratTugasHistoryDetails | null;
+}
+
+export interface SuratTugasHistoryDetails {
+  id: string;
+  nomor_surat_tugas: string;
+  tanggal_terbit: Date;
+  mulai_tugas: Date;
+  selesai_tugas: Date;
+  lokasi: string;
+  created_at: Date;
+  user: {
+    id: number;
+    nama: string;
+    username: string;
+  };
 }
 
 export interface AttendanceHistoryResult {

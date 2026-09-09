@@ -121,6 +121,18 @@ export function formatWibDateLong(date: Date = getNowWib()): string {
 }
 
 /**
+ * Formats a PostgreSQL DATE value at its UTC calendar boundary.
+ */
+export function formatDateOnlyLong(date: Date): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
+/**
  * Formats a Date into a short Indonesian calendar string in WIB timezone.
  * e.g., "31 Agu 2026"
  */
@@ -299,5 +311,4 @@ export function isWibAttendanceWindowClosed(
   const time = getWibTimeParts(now);
   return time.hours === 23 && time.minutes === 59;
 }
-
 
