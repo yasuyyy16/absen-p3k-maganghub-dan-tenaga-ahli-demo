@@ -1,282 +1,209 @@
-# Absensi P3K - MagangHub & Tenaga Ahli
+# Web Presensi P3K (MagangHub, Magang Biasa & Tenaga Ahli)
 
-Web aplikasi absensi untuk peserta MagangHub dan Tenaga Ahli pada unit P3K (Pesisir dan Pulau-Pulau Kecil), Kementerian Kelautan dan Perikanan (KKP).
+Aplikasi web presensi mandiri internal untuk peserta Magang (MagangHub & Magang Biasa) serta Tenaga Ahli pada unit P3K (Pesisir dan Pulau-Pulau Kecil), Kementerian Kelautan dan Perikanan (KKP).
 
-Aplikasi ini digunakan untuk melakukan absensi harian, melihat riwayat kehadiran, mengelola profil pengguna, serta menghasilkan status ALFA secara otomatis pada hari kerja ketika pengguna tidak melakukan absensi.
+Aplikasi ini mencatat kehadiran harian berbasis waktu Indonesia Barat (WIB), memvalidasi lokasi GPS dan radius kerja, mengelola pengajuan izin/sakit beserta bukti dokumen, mencatat aktivitas rapat dan surat tugas dinas, serta menyediakan rekap riwayat kehadiran personal.
 
-## ✨ Fitur
+---
 
-### Absensi
+## Fitur Utama
 
-- Check-in dan check-out absensi.
-- Pencatatan waktu absensi.
-- Pencatatan lokasi menggunakan GPS.
-- Penyimpanan koordinat latitude dan longitude.
-- Penyimpanan akurasi GPS.
-- Penyimpanan alamat lokasi.
-- Status kehadiran:
-  - `HADIR`
-  - `IZIN`
-  - `SAKIT`
-  - `ALFA`
+### 1. Autentikasi dan Manajemen Akun
+- **Login Terpusat**: Masuk menggunakan username dan kata sandi yang telah didaftarkan administrator.
+- **Keamanan Sandi**: Hash kata sandi menggunakan Argon2id (dengan dukungan verifikasi bcrypt untuk kompatibilitas data lama).
+- **Session Aman**: Sesi berbasis token JWT (`jose`) yang disimpan dalam cookie `httpOnly` dengan masa berlaku 12 jam.
+- **Wajib Ubah Kata Sandi**: Flag `must_change_password` untuk mewajibkan pengguna memperbarui kata sandi awal saat pertama kali login.
+- **Pengaturan Profil**: Pengguna dapat memperbarui nama lengkap, jenis personel (`Tenaga Ahli`, `MagangHub`, `Magang Biasa`), universitas asal (wajib untuk Magang Biasa), dan username unik.
 
-### Riwayat Absensi
+### 2. Alur Presensi Harian (Senin - Jumat)
+Sistem beroperasi pada zona waktu bisnis **Asia/Jakarta (WIB)** dengan jendela presensi pukul **00:01 WIB - 23:58 WIB**. Presensi ditutup otomatis pada hari Sabtu dan Minggu.
 
-- Melihat riwayat absensi pengguna.
-- Menampilkan tanggal, waktu masuk, waktu pulang, status, dan informasi lokasi.
-- Data absensi tersimpan secara permanen di database.
+- **Absen Pagi (HADIR)**:
+  - **Senin - Kamis (WFO)**: Memerlukan koordinat GPS aktif dan memvalidasi jarak pengguna berada dalam radius maksimal 100 meter dari Gedung Mina Bahari 3 KKP (Jakarta Pusat).
+  - **Jumat (WFA)**: Kebijakan Work From Anywhere, validasi geofence dinonaktifkan dan GPS bersifat opsional.
+  - Alamat lokasi dicatat secara otomatis melalui reverse geocoding server-side (OpenStreetMap Nominatim).
+- **Absen Pulang**:
+  - Menggunakan interaksi geser untuk konfirmasi (*slide-to-confirm*) disertai dialog konfirmasi.
+  - Dapat dilakukan kapan saja setelah Absen Pagi berhasil dicatat.
+  - Bersifat bebas lokasi (*location-independent*) di semua hari kerja.
+- **Pengingat Presensi**:
+  - Banner peringatan aktif otomatis mulai pukul 17:00 WIB jika pengguna berstatus HADIR namun belum melakukan Absen Pulang.
 
-### Profil
+### 3. Pengajuan Izin dan Sakit
+- Pengguna dapat mengajukan status **IZIN** atau **SAKIT** sebelum absen pagi atau mengubah status dari HADIR ke IZIN/SAKIT (jika belum absen pulang).
+- **Wajib Dokumen Bukti**: Pengunggahan file bukti (surat dokter, surat izin) wajib dilampirkan:
+  - Format yang didukung: JPG, JPEG, PNG, PDF.
+  - Batas ukuran file maksimal 1 MB (dengan kompresi gambar otomatis pada sisi klien sebelum diunggah).
+  - Penyimpanan menggunakan `@vercel/blob` pada production dengan fallback otomatis ke filesystem lokal (`public/uploads/proofs/`) pada development.
+- Keterangan pengajuan maksimal 500 karakter.
 
-- Melihat informasi profil pengguna.
-- Informasi jenis personel.
-- Informasi universitas dan jurusan untuk peserta magang.
+### 4. Presensi Khusus: Rapat
+- Status **RAPAT** digunakan untuk penugasan rapat atau pertemuan dinas yang tidak memerlukan jam pulang terpisah.
+- Dapat dicatat langsung saat belum presensi, atau dikonversi langsung dari status HADIR.
+- Wajib menyertakan catatan/keterangan agenda rapat (maksimal 500 karakter).
 
-### Otomatisasi ALFA
+### 5. Presensi Khusus: Surat Tugas
+- Status **SURAT_TUGAS** digunakan untuk penugasan luar kota atau kegiatan dinas multi-hari.
+- **Formulir Surat Tugas**: Mencakup nomor surat tugas, lokasi penugasan, tanggal terbit, tanggal mulai, dan tanggal selesai.
+- **Pembuatan Rekap Otomatis**: Sistem secara otomatis membuat baris presensi berstatus `SURAT_TUGAS` untuk seluruh hari kerja (Senin - Jumat) dalam rentang tanggal penugasan (hari libur akhir pekan dilewati).
+- **Validasi Integritas**:
+  - Mencegah tumpang tindih (*overlap*) antar periode surat tugas.
+  - Menolak pembuatan jika pada rentang tanggal tersebut sudah terdapat catatan presensi lain.
+- **Detail dan Penghapusan**: Pengguna dapat melihat detail surat tugas atau menghapusnya (penghapusan otomatis membersihkan seluruh baris presensi terkait dan mencatat audit pada log aktivitas).
 
-Sistem memiliki mekanisme otomatis untuk menghasilkan status `ALFA` bagi pengguna yang memenuhi kondisi tertentu tetapi tidak melakukan absensi pada hari kerja.
+### 6. Otomatisasi ALFA (Vercel Cron & Webhook)
+- Pengguna aktif yang tidak melakukan presensi hingga batas waktu hari kerja ditutup akan otomatis diberi status **ALFA**.
+- Proses dijalankan setiap hari kerja (Senin - Jumat) pukul 23:59 WIB (16:59 UTC) melalui endpoint cron:
+  `GET /api/cron/alfa` atau `POST /api/cron/alfa`
+- Endpoint dilindungi dengan otorisasi `CRON_SECRET`.
 
-Proses otomatis dijalankan menggunakan Vercel Cron melalui endpoint:
+### 7. Riwayat Presensi dan Log Aktivitas
+- **Riwayat Personal**: Menampilkan tabel presensi pengguna yang sedang login dengan filter per bulan kalender dan pagination server-side (10 data per halaman).
+- **Modal Lokasi dan Peta**: Menampilkan visualisasi peta interaktif (Leaflet) untuk titik koordinat masuk dan pulang.
+- **Modal Bukti Dokumen**: Preview langsung file bukti izin/sakit (gambar atau PDF).
+- **Log Aktivitas**: Riwayat audit aktivitas pengguna (login, absen masuk/pulang, pengajuan izin/sakit, pembuatan/penghapusan surat tugas) yang tersimpan di tabel `user_activities`.
 
-```text
-/api/cron/alfa
-```
+---
 
-Endpoint dilindungi menggunakan `CRON_SECRET` sehingga tidak dapat dipanggil tanpa autentikasi yang valid.
+## Status Presensi
 
-### Autentikasi
+| Status | Deskripsi | Kebutuhan Lokasi | Bukti Dokumen |
+|---|---|---|---|
+| `HADIR` | Presensi masuk dan pulang reguler di kantor | GPS & Geofence 100m (Senin-Kamis), Bebas (Jumat) | Tidak |
+| `IZIN` | Pengajuan izin tidak masuk kerja | Bebas | Wajib (Maks 1 MB) |
+| `SAKIT` | Pengajuan istirahat karena sakit | Bebas | Wajib (Maks 1 MB) |
+| `RAPAT` | Penugasan rapat dinas | Bebas | Catatan Agenda |
+| `SURAT_TUGAS` | Penugasan dinas luar kota multi-hari | Bebas | Dokumen Surat Tugas |
+| `ALFA` | Tidak hadir tanpa keterangan pada hari kerja | Otomatis oleh Cron | Tidak |
 
-- Login menggunakan username dan password.
-- Password disimpan dalam bentuk hash.
-- Session menggunakan session token.
-- Session memiliki masa berlaku.
-- Pengguna dapat dinonaktifkan tanpa menghapus data historis.
+---
 
-## 🛠️ Teknologi
+## Teknologi yang Digunakan
 
-- **Next.js 16**
-- **React 19**
-- **TypeScript**
-- **Prisma ORM**
-- **PostgreSQL**
-- **Tailwind CSS**
-- **Leaflet**
-- **Argon2**
-- **bcryptjs**
-- **Jose**
-- **Vercel**
+- **Framework**: Next.js 16.3.3 (App Router, Turbopack)
+- **UI Library**: React 19.2.8 & React DOM 19.2.8
+- **Bahasa**: TypeScript 5
+- **Styling**: Tailwind CSS v4 & `@tailwindcss/postcss`
+- **Database & ORM**: PostgreSQL & Prisma ORM 5.22.0
+- **Autentikasi & Keamanan**: Argon2, bcryptjs, Jose (JWT)
+- **Peta & Geolocation**: Leaflet 1.9.4 & OpenStreetMap Nominatim
+- **File Storage**: `@vercel/blob` (Cloud) dengan fallback lokal
+- **Linter**: ESLint 9
 
-## 📁 Struktur Project
+---
+
+## Struktur Direktori
 
 ```text
 absen-p3k-maganghub-dan-tenaga-ahli/
-│
 ├── app/
 │   ├── absensi/
-│   │   ├── login/
-│   │   ├── profil/
-│   │   └── riwayat/
-│   │
-│   └── api/
-│       └── cron/
-│           └── alfa/
-│
+│   │   ├── (dashboard)/
+│   │   │   ├── page.tsx               # Dashboard utama presensi
+│   │   │   ├── layout.tsx             # Layout navigasi mobile
+│   │   │   ├── profil/page.tsx        # Halaman profil pengguna
+│   │   │   ├── riwayat/page.tsx       # Riwayat presensi & filter bulan
+│   │   │   └── surat-tugas/baru/      # Formulir pembuatan Surat Tugas
+│   │   ├── login/                     # Halaman login
+│   │   └── layout.tsx
+│   ├── actions/                       # Server Actions (auth, attendance, profile)
+│   ├── api/
+│   │   └── cron/alfa/route.ts         # Endpoint otomatisasi ALFA harian
+│   ├── globals.css
+│   └── layout.tsx
+├── components/
+│   ├── dashboard/                     # Kartu aksi presensi, jam live, modal izin/sakit
+│   ├── history/                       # Tabel riwayat, modal lokasi & detail surat tugas
+│   ├── layout/                        # Bottom navigation bar mobile
+│   ├── map/                           # Komponen peta Leaflet
+│   └── profile/                       # Formulir edit data profil & sandi
 ├── lib/
-│   ├── attendance/
-│   │   └── alfa/
-│   ├── auth.ts
-│   ├── prisma.ts
-│   └── time.ts
-│
+│   ├── attendance/                    # Logika bisnis ALFA & riwayat
+│   ├── constants/                     # Aturan validasi file bukti & waktu
+│   ├── auth.ts                        # Manajemen JWT session & cookie
+│   ├── geolocation.ts                 # Handler GPS browser
+│   ├── location.ts                    # Haversine formula, radius, & reverse geocode
+│   ├── password.ts                    # Hash & verifikasi Argon2 / bcrypt
+│   ├── prisma.ts                      # Prisma client singleton
+│   ├── storage.ts                     # Upload Vercel Blob / filesystem lokal
+│   └── time.ts                        # Utilitas waktu Asia/Jakarta (WIB)
 ├── prisma/
-│   └── schema.prisma
-│
-├── scripts/
-│
+│   └── schema.prisma                  # Skema database PostgreSQL
 ├── public/
-│
-├── .env
-├── vercel.json
+├── vercel.json                        # Jadwal Vercel Cron
 ├── package.json
 └── tsconfig.json
 ```
 
-## 🗄️ Database
+---
 
-Aplikasi menggunakan **PostgreSQL** sebagai database dan **Prisma** sebagai ORM.
+## Konfigurasi Lingkungan (.env)
 
-Model utama yang digunakan:
-
-- `attendance_users`
-- `attendances`
-- `sessions`
-
-Jenis personel:
-
-```text
-MAGANG
-TENAGA_AHLI
-```
-
-Status absensi:
-
-```text
-HADIR
-IZIN
-SAKIT
-ALFA
-```
-
-### Relasi Data
-
-Setiap data absensi dikaitkan dengan pengguna berdasarkan:
-
-```text
-person_type
-person_id
-```
-
-Sistem juga menerapkan unique constraint pada:
-
-```text
-person_type + person_id + date
-```
-
-sehingga satu pengguna tidak dapat memiliki lebih dari satu record absensi pada tanggal yang sama.
-
-## 🔐 Environment Variables
-
-Buat file `.env` pada environment development:
+Buat file `.env` pada direktori root proyek:
 
 ```env
-DATABASE_URL="your-postgresql-connection-string"
-SESSION_SECRET="your-session-secret"
-CRON_SECRET="your-cron-secret"
+# Koneksi Database PostgreSQL
+DATABASE_URL="postgresql://username:password@localhost:5432/db_p3k?schema=public"
+
+# Rahasia Sesi JWT (Gunakan string acak minimal 32 karakter)
+SESSION_SECRET="your-secure-random-session-secret"
+
+# Rahasia Endpoint Cron Otomatisasi ALFA
+CRON_SECRET="your-secure-random-cron-secret"
+
+# (Opsional) Token Vercel Blob untuk penyimpanan bukti di cloud
+BLOB_READ_WRITE_TOKEN="vercel_blob_rw_..."
+
+# (Opsional) Konfigurasi Titik Koordinat Kantor & Radius (Default: Gedung Mina Bahari 3 KKP)
+ABSENSI_OFFICE_LATITUDE="-6.1791728"
+ABSENSI_OFFICE_LONGITUDE="106.8350564"
+ABSENSI_OFFICE_RADIUS_METERS="100"
+
+# (Hanya Development) Override waktu untuk simulasi skenario pengujian
+# DEV_TIME_OVERRIDE="2026-09-10T08:00:00+07:00"
 ```
 
-### `DATABASE_URL`
+---
 
-Connection string PostgreSQL yang digunakan Prisma untuk mengakses database.
+## Panduan Menjalankan Proyek
 
-### `SESSION_SECRET`
-
-Secret yang digunakan untuk keamanan session aplikasi.
-
-Gunakan nilai acak yang kuat pada production.
-
-### `CRON_SECRET`
-
-Secret untuk mengamankan endpoint otomatisasi ALFA.
-
-Contoh:
-
-```env
-CRON_SECRET="your-random-cron-secret"
-```
-
-## 🚀 Menjalankan Project Secara Lokal
-
-### 1. Clone Repository
-
-```bash
-git clone https://github.com/yasuyyy16/absen-p3k-maganghub-dan-tenaga-ahli.git
-cd absen-p3k-maganghub-dan-tenaga-ahli
-```
-
-### 2. Install Dependencies
-
+### 1. Pasang Dependensi
 ```bash
 npm install
 ```
 
-Prisma Client akan otomatis digenerate melalui script:
-
-```text
-prisma generate
-```
-
-### 3. Konfigurasi Environment
-
-Buat file:
-
-```text
-.env
-```
-
-Kemudian isi environment variables yang diperlukan.
-
-### 4. Generate Prisma Client
-
-Jika diperlukan, jalankan:
-
+### 2. Generate Prisma Client
 ```bash
 npx prisma generate
 ```
 
-### 5. Jalankan Development Server
-
+### 3. Jalankan Server Development
 ```bash
 npm run dev
 ```
+Aplikasi berjalan secara default di [http://localhost:3000](http://localhost:3000) (atau port 3001 jika port 3000 sedang digunakan). Akses rute `/absensi` untuk memulai.
 
-Aplikasi dapat diakses melalui:
-
-```text
-http://localhost:3000
-```
-
-## 🏗️ Production Build
-
-Untuk memastikan aplikasi dapat dibuild:
-
+### 4. Pengecekan Type & Build Produksi
 ```bash
+# Validasi TypeScript
+npx tsc --noEmit
+
+# Linting
+npm run lint
+
+# Build Produksi
 npm run build
-```
 
-Kemudian jalankan production server:
-
-```bash
+# Menjalankan Build Produksi
 npm run start
 ```
 
-## 🧪 Validation
+---
 
-Beberapa pemeriksaan yang dapat dijalankan:
+## Konfigurasi Scheduler Cron (Otomatisasi ALFA)
 
-### TypeScript
-
-```bash
-npx tsc --noEmit
-```
-
-### ESLint
-
-```bash
-npm run lint
-```
-
-### Prisma
-
-```bash
-npx prisma validate
-```
-
-### Production Build
-
-```bash
-npm run build
-```
-
-## ⏰ Vercel Cron
-
-Konfigurasi cron berada pada:
-
-```text
-vercel.json
-```
-
-Konfigurasi saat ini:
-
+### Vercel Deployment
+File `vercel.json` telah dikonfigurasi untuk menjalankan cron otomatis:
 ```json
 {
   "crons": [
@@ -287,86 +214,18 @@ Konfigurasi saat ini:
   ]
 }
 ```
+*Catatan: Waktu `16:59 UTC` setara dengan pukul `23:59 WIB` setiap hari Senin hingga Jumat.*
 
-Cron menggunakan timezone UTC. Jadwal `59 16 * * 1-5` setara dengan pukul 23:59 WIB setiap Senin–Jumat.
-
-Endpoint cron ini menjalankan fungsi otomatis:
-- **Pembuatan absensi ALFA otomatis** untuk pengguna aktif yang belum presensi pada hari kerja yang telah ditutup.
-
-> **Kebijakan Dokumen Bukti (Izin/Sakit)**: Dokumen bukti presensi (Izin/Sakit) disimpan secara permanen tanpa batas waktu (*retained indefinitely*). Tidak ada pembersihan atau penghapusan otomatis file bukti berdasarkan usia absensi. Batas ukuran file yang diunggah adalah maksimal 1 MB per file, dengan kompresi dan penyesuaian resolusi gambar secara otomatis pada sisi klien (*client-side compression*) sebelum pengunggahan.
-
-Endpoint cron:
-
-```text
-GET /api/cron/alfa
-POST /api/cron/alfa
-```
-
-Endpoint dilindungi menggunakan `CRON_SECRET`.
-
-### 🐧 Scheduler untuk Deployment VPS / PaaS / Docker (Non-Vercel)
-
-Jika aplikasi di-deploy di VPS (Ubuntu/Debian) atau PaaS tanpa dukungan native Vercel Cron, gunakan cron Linux atau scheduler internal. **Jangan membuat scheduler kedua**, cukup trigger endpoint yang sama:
-
-Contoh konfigurasi `crontab -e`:
-
+### Non-Vercel Deployment (VPS / Linux Cron)
+Jika aplikasi dideploy pada VPS, jalankan cron job berikut pada crontab server:
 ```bash
-# Jalankan setiap hari kerja Senin-Jumat pukul 23:59 WIB (Asia/Jakarta)
+# Eksekusi setiap Senin - Jumat pukul 23:59 WIB
 59 23 * * 1-5 curl -fsS -X POST -H "Authorization: Bearer <CRON_SECRET>" http://localhost:3000/api/cron/alfa > /dev/null 2>&1
 ```
 
-Atau menggunakan systemd timer dengan curl serupa.
+---
 
-
-## 🔒 Keamanan
-
-Beberapa mekanisme keamanan yang diterapkan:
-
-- Password tidak disimpan dalam bentuk plaintext.
-- Session menggunakan token yang disimpan dalam database.
-- Endpoint cron dilindungi menggunakan secret.
-- Pengguna dapat dinonaktifkan.
-- Unique constraint mencegah duplikasi absensi pada tanggal yang sama.
-- Validasi file bukti dilakukan secara otoritatif di sisi server (ukuran $\le$ 1 MB, MIME type, dan ekstensi file).
-- Environment variables digunakan untuk menyimpan credential dan secret.
-- Credential database tidak disimpan di repository.
-
-## 🌐 Deployment & Storage
-
-Aplikasi dapat dideploy menggunakan platform yang mendukung Next.js dan PostgreSQL.
-
-### Konfigurasi Penyimpanan Bukti (Vercel Blob)
-- **Production (Vercel)**: Menggunakan `@vercel/blob` dengan konfigurasi `BLOB_READ_WRITE_TOKEN`. URL absolut dokumen bukti disimpan di database (`proof_file_url`).
-- **Local Development**: Jika `BLOB_READ_WRITE_TOKEN` tidak dikonfigurasi, sistem secara otomatis menggunakan fallback ke penyimpanan filesystem lokal (`public/uploads/proofs/`).
-
-Untuk deployment menggunakan Vercel:
-
-1. Push repository ke GitHub.
-2. Import repository ke Vercel.
-3. Tambahkan environment variables:
-   - `DATABASE_URL`
-   - `SESSION_SECRET`
-   - `CRON_SECRET`
-   - `BLOB_READ_WRITE_TOKEN` (dibuat via menu Vercel Storage -> Blob)
-4. Deploy project.
-5. Pastikan Vercel Cron aktif.
-6. Verifikasi endpoint `/api/cron/alfa`.
-
-### Environment Production
-
-Gunakan secret yang berbeda dari environment development.
-
-Contoh:
-
-```env
-DATABASE_URL="production-database-url"
-SESSION_SECRET="production-session-secret"
-CRON_SECRET="production-cron-secret"
-BLOB_READ_WRITE_TOKEN="vercel_blob_rw_..."
-```
-
-## 📌 Catatan
-
-Aplikasi ini merupakan sistem internal yang dikembangkan untuk mendukung kebutuhan administrasi dan monitoring kehadiran peserta MagangHub dan Tenaga Ahli pada unit P3K.
-
-Data absensi mencakup informasi waktu dan lokasi sehingga konfigurasi database, authentication secret, dan environment production harus dijaga dengan baik.
+## Keamanan Data
+- Password disimpan dalam bentuk hash Argon2id (dan bcrypt legacy), tidak pernah disimpan dalam format teks biasa.
+- Validasi otoritas identitas pengguna, status aktif, koordinat, dan integritas file bukti selalu dieksekusi di sisi server (*Server Actions*).
+- File kredensial `.env` diabaikan oleh git dan tidak boleh diikutsertakan dalam commit repositori.
