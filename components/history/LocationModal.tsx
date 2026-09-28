@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { getAccuracyInfo } from '@/lib/location';
+import { useI18n } from '@/lib/i18n/context';
 
 const AttendanceMap = dynamic(
   () => import('@/components/map/AttendanceMap'),
@@ -46,6 +47,7 @@ export default function LocationModal({
   onClose,
   record,
 }: LocationModalProps) {
+  const { t, locale } = useI18n();
   const [activeTab, setActiveTab] = useState<'IN' | 'OUT'>('IN');
   const [prevRecordId, setPrevRecordId] = useState<number | undefined>(record?.id);
 
@@ -87,7 +89,7 @@ export default function LocationModal({
   const currentLon = isOut ? record.longitude_out : record.longitude;
   const currentAccuracy = isOut ? record.accuracy_out : record.accuracy;
   const currentAddress = isOut ? record.address_out : record.address;
-  const currentTitle = isOut ? 'Lokasi Absen Pulang' : 'Lokasi Absen Masuk';
+  const currentTitle = isOut ? t.dashboard.locationCheckOut : t.dashboard.locationCheckIn;
   const currentTime = isOut ? record.checkOutFormatted : record.checkInFormatted;
 
   const accuracyInfo = getAccuracyInfo(currentAccuracy);
@@ -114,7 +116,7 @@ export default function LocationModal({
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h2 id="location-modal-title" className="text-base sm:text-lg font-bold text-slate-900">
-              Lokasi Presensi
+              {t.history.modalLocationTitle}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               {record.nama ? `${record.nama} • ` : ''}{record.dateFormatted}
@@ -125,7 +127,7 @@ export default function LocationModal({
             type="button"
             onClick={onClose}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer"
-            aria-label="Tutup dialog lokasi"
+            aria-label={t.common.close}
           >
             ✕
           </button>
@@ -143,7 +145,7 @@ export default function LocationModal({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Absen Masuk
+              {t.dashboard.tabIn}
             </button>
             <button
               type="button"
@@ -154,7 +156,7 @@ export default function LocationModal({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Absen Pulang
+              {t.dashboard.tabOut}
             </button>
           </div>
         )}
@@ -180,7 +182,7 @@ export default function LocationModal({
                 <svg className="w-4 h-4 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                 </svg>
-                <span>{accuracyInfo.warning}</span>
+                <span>{locale === 'en' ? t.accuracy.warningLow : accuracyInfo.warning}</span>
               </div>
             )}
 
@@ -189,7 +191,7 @@ export default function LocationModal({
               {record.nama && (
                 <div className="col-span-2 sm:col-span-3 bg-slate-50 border border-slate-100 rounded-xl p-2.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
-                    Nama / Person
+                    {locale === 'en' ? 'Name / Person' : 'Nama / Person'}
                   </span>
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <span className="font-bold text-slate-900 block">
@@ -206,16 +208,16 @@ export default function LocationModal({
 
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
-                  Jenis Presensi
+                  {locale === 'en' ? 'Attendance Type' : 'Jenis Presensi'}
                 </span>
                 <span className="font-bold text-slate-900 block">
-                  {isOut ? 'Absen Pulang' : 'Absen Masuk'}
+                  {isOut ? t.dashboard.tabOut : t.dashboard.tabIn}
                 </span>
               </div>
 
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
-                  Waktu Tercatat
+                  {locale === 'en' ? 'Recorded Time' : 'Waktu Tercatat'}
                 </span>
                 <span className="font-bold font-mono text-slate-900 block">
                   {currentTime ?? '-'}
@@ -224,7 +226,7 @@ export default function LocationModal({
 
               <div className="col-span-2 sm:col-span-1 bg-slate-50 border border-slate-100 rounded-xl p-2.5">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
-                  Akurasi GPS
+                  {t.dashboard.gpsAccuracy}
                 </span>
                 <div className="flex items-center gap-1 flex-wrap">
                   <span className="font-bold font-mono text-slate-900 block">
@@ -232,7 +234,7 @@ export default function LocationModal({
                   </span>
                   {accuracyInfo.level !== 'UNKNOWN' && (
                     <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded ${accuracyInfo.badgeStyle}`}>
-                      {accuracyInfo.label}
+                      {accuracyInfo.level === 'GOOD' ? t.accuracy.high : accuracyInfo.level === 'MODERATE' ? t.accuracy.medium : accuracyInfo.level === 'LOW' ? t.accuracy.low : t.accuracy.unknown}
                     </span>
                   )}
                 </div>
@@ -265,10 +267,10 @@ export default function LocationModal({
               </svg>
               <div className="flex-1 min-w-0">
                 <span className="font-semibold uppercase tracking-wider text-[10px] text-slate-500 block mb-0.5">
-                  Alamat / Wilayah
+                  {t.dashboard.addressLabel}
                 </span>
                 <p className="text-slate-800 font-medium break-words leading-relaxed">
-                  {currentAddress || 'Alamat tidak tersedia'}
+                  {currentAddress || t.dashboard.addressUnavailable}
                 </p>
               </div>
             </div>
@@ -277,8 +279,8 @@ export default function LocationModal({
           <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center space-y-1 text-slate-500">
             <p className="text-xs sm:text-sm font-medium">
               {isOut
-                ? 'Lokasi Absen Pulang belum tersedia.'
-                : 'Lokasi Absen Masuk belum tersedia.'}
+                ? t.dashboard.checkOutLocationUnavailable
+                : t.dashboard.checkInLocationUnavailable}
             </p>
           </div>
         )}
@@ -289,7 +291,7 @@ export default function LocationModal({
             onClick={onClose}
             className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer"
           >
-            Tutup
+            {t.common.close}
           </button>
         </div>
       </div>

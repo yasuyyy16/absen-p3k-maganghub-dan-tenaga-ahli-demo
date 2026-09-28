@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import LoginForm from './LoginForm';
+import { getDictionary } from '@/lib/i18n';
+import { getServerLocale } from '@/lib/i18n/server';
 
 export const metadata: Metadata = {
   title: 'Login - Sistem Absensi P3K MagangHub & Tenaga Ahli',
@@ -15,6 +17,9 @@ export default async function LoginPage() {
     redirect('/absensi');
   }
 
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
+
   return (
     <main className="min-h-dvh flex flex-col justify-center items-center px-4 py-8 bg-[#f7f9ff] relative overflow-hidden">
       {/* Ambient background accent */}
@@ -26,10 +31,10 @@ export default async function LoginPage() {
             P3K
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Sistem Absensi
+            {t.login.title}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Portal P3K MagangHub & Tenaga Ahli
+            {t.login.subtitle}
           </p>
         </header>
 
@@ -40,7 +45,7 @@ export default async function LoginPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
           </svg>
           <p className="text-xs text-slate-500 text-center">
-            Akun disediakan oleh Administrator unit P3K.
+            {t.login.adminNotice}
           </p>
         </footer>
       </div>

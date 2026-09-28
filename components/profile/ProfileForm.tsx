@@ -7,6 +7,8 @@ import {
   updatePasswordAction,
 } from '@/app/actions/profile';
 import { PersonnelCategory, VALID_PERSONNEL_CATEGORIES } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/context';
+import LanguageSelector from './LanguageSelector';
 
 interface ProfileFormProps {
   initialNama: string;
@@ -21,6 +23,8 @@ export default function ProfileForm({
   initialJenisPersonel,
   initialUniversitas,
 }: ProfileFormProps) {
+  const { t, locale } = useI18n();
+
   // Personnel Info Form State
   const [nama, setNama] = useState<string>(initialNama || '');
   const [jenisPersonel, setJenisPersonel] = useState<string>(
@@ -119,6 +123,9 @@ export default function ProfileForm({
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      {/* SECTION: LANGUAGE SELECTION */}
+      <LanguageSelector />
+
       {/* SECTION 1: INFORMASI PERSONEL */}
       <section className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-7 shadow-xs space-y-5">
         <div className="border-b border-slate-100 pb-4">
@@ -130,10 +137,10 @@ export default function ProfileForm({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                Informasi Personel
+                {t.profile.personnelSectionTitle}
               </h2>
               <p className="text-xs text-slate-500">
-                Identitas dan kategori kepegawaian Anda yang akan tersinkronisasi ke Dashboard Admin P3K.
+                {t.profile.personnelSectionSubtitle}
               </p>
             </div>
           </div>
@@ -159,7 +166,7 @@ export default function ProfileForm({
               htmlFor="nama"
               className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5"
             >
-              Nama Lengkap <span className="text-red-500">*</span>
+              {t.profile.fullName} <span className="text-red-500">*</span>
             </label>
             <input
               id="nama"
@@ -171,11 +178,13 @@ export default function ProfileForm({
               required
               minLength={2}
               maxLength={100}
-              placeholder="Masukkan nama lengkap Anda..."
+              placeholder={t.profile.fullNamePlaceholder}
               className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all outline-none"
             />
             <p className="text-[11px] text-slate-500 mt-1">
-              Nama lengkap yang akan tercatat pada rekapan dan laporan kehadiran unit P3K.
+              {locale === 'en'
+                ? 'Full name that will be recorded in P3K unit attendance reports.'
+                : 'Nama lengkap yang akan tercatat pada rekapan dan laporan kehadiran unit P3K.'}
             </p>
           </div>
 
@@ -185,7 +194,7 @@ export default function ProfileForm({
               htmlFor="jenisPersonelSelect"
               className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5"
             >
-              Jenis Personel <span className="text-red-500">*</span>
+              {t.profile.personnelCategory} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <select
@@ -197,7 +206,7 @@ export default function ProfileForm({
                 required
                 className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all outline-none cursor-pointer appearance-none"
               >
-                <option value="" disabled>-- Pilih Jenis Personel --</option>
+                <option value="" disabled>{t.profile.selectCategory}</option>
                 {VALID_PERSONNEL_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -211,7 +220,9 @@ export default function ProfileForm({
               </div>
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
-              Pilih kategori kepegawaian Anda (Tenaga Ahli, MagangHub, atau Magang Biasa).
+              {locale === 'en'
+                ? 'Select your personnel category (Tenaga Ahli, MagangHub, or Magang Biasa).'
+                : 'Pilih kategori kepegawaian Anda (Tenaga Ahli, MagangHub, atau Magang Biasa).'}
             </p>
           </div>
 
@@ -221,11 +232,15 @@ export default function ProfileForm({
               htmlFor="universitas"
               className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5"
             >
-              Universitas / Asal Instansi{' '}
+              {t.profile.university}{' '}
               {isMagangBiasa ? (
-                <span className="text-red-600 font-bold">(Wajib untuk Magang Biasa)</span>
+                <span className="text-red-600 font-bold">
+                  {locale === 'en' ? '(Required for Magang Biasa)' : '(Wajib untuk Magang Biasa)'}
+                </span>
               ) : (
-                <span className="text-slate-400 font-normal">(Opsional)</span>
+                <span className="text-slate-400 font-normal">
+                  {locale === 'en' ? '(Optional)' : '(Opsional)'}
+                </span>
               )}
             </label>
             <input
@@ -236,13 +251,17 @@ export default function ProfileForm({
               onChange={(e) => setUniversitas(e.target.value)}
               disabled={isPersonnelPending}
               required={isMagangBiasa}
-              placeholder="Contoh: Universitas Indonesia, Institut Pertanian Bogor, dll."
+              placeholder={t.profile.universityPlaceholder}
               className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all outline-none"
             />
             <p className="text-[11px] text-slate-500 mt-1">
               {isMagangBiasa
-                ? 'Peserta kategori Magang Biasa wajib mencantumkan asal universitas.'
-                : 'Asal perguruan tinggi atau instansi tempat menempuh pendidikan.'}
+                ? (locale === 'en'
+                    ? 'Magang Biasa participants must specify university of origin.'
+                    : 'Peserta kategori Magang Biasa wajib mencantumkan asal universitas.')
+                : (locale === 'en'
+                    ? 'University or institution of higher education.'
+                    : 'Asal perguruan tinggi atau instansi tempat menempuh pendidikan.')}
             </p>
           </div>
 
@@ -259,10 +278,10 @@ export default function ProfileForm({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  <span>Menyimpan...</span>
+                  <span>{t.profile.savingPersonnel}</span>
                 </>
               ) : (
-                <span>Simpan Informasi Personel</span>
+                <span>{t.profile.savePersonnel}</span>
               )}
             </button>
           </div>
@@ -280,10 +299,10 @@ export default function ProfileForm({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                Informasi Akun & Keamanan
+                {t.profile.usernameSectionTitle}
               </h2>
               <p className="text-xs text-slate-500">
-                Kelola username login dan kata sandi akun presensi Anda.
+                {t.profile.usernameSectionSubtitle}
               </p>
             </div>
           </div>
@@ -292,7 +311,7 @@ export default function ProfileForm({
         {/* SUBSECTION A: UBAH USERNAME */}
         <div className="space-y-4">
           <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
-            Username Login
+            {t.profile.usernameLabel}
           </h3>
 
           {usernameFeedback && (
@@ -314,7 +333,7 @@ export default function ProfileForm({
                 htmlFor="username"
                 className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5"
               >
-                Ubah Username
+                {t.profile.usernameLabel}
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-sm font-mono pointer-events-none">
@@ -330,12 +349,12 @@ export default function ProfileForm({
                   required
                   minLength={3}
                   maxLength={30}
-                  placeholder="masukkan_username_baru"
+                  placeholder={locale === 'en' ? 'enter_new_username' : 'masukkan_username_baru'}
                   className="w-full min-h-[44px] pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono placeholder:text-slate-400 focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all outline-none"
                 />
               </div>
               <p className="text-[11px] text-slate-500 mt-1">
-                Panjang 3-30 karakter. Hanya boleh huruf, angka, titik (.), strip (-), dan garis bawah (_).
+                {t.profile.usernameHint}
               </p>
             </div>
 
@@ -351,10 +370,10 @@ export default function ProfileForm({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span>Memperbarui...</span>
+                    <span>{t.profile.savingUsername}</span>
                   </>
                 ) : (
-                  <span>Perbarui Username</span>
+                  <span>{t.profile.saveUsername}</span>
                 )}
               </button>
             </div>
@@ -365,14 +384,14 @@ export default function ProfileForm({
         <div id="ubah-password" className="space-y-4 pt-4 border-t border-slate-100 scroll-mt-24">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <h3 className="text-sm font-bold text-slate-800">
-              Kata Sandi (Password)
+              {t.profile.passwordSectionTitle}
             </h3>
             <button
               type="button"
               onClick={() => setShowPasswords((prev) => !prev)}
               className="text-xs text-[#006194] hover:underline font-medium cursor-pointer"
             >
-              {showPasswords ? 'Sembunyikan Password' : 'Lihat Password'}
+              {showPasswords ? t.login.hidePassword : t.login.showPassword}
             </button>
           </div>
 
@@ -396,7 +415,7 @@ export default function ProfileForm({
                 htmlFor="currentPassword"
                 className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5"
               >
-                Password Saat Ini <span className="text-red-500">*</span>
+                {t.profile.currentPassword} <span className="text-red-500">*</span>
               </label>
               <input
                 id="currentPassword"
@@ -406,7 +425,7 @@ export default function ProfileForm({
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 disabled={isPasswordPending}
                 required
-                placeholder="Masukkan kata sandi saat ini..."
+                placeholder={t.profile.currentPasswordPlaceholder}
                 className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all outline-none"
               />
             </div>
@@ -418,7 +437,7 @@ export default function ProfileForm({
                   htmlFor="newPassword"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5"
                 >
-                  Password Baru <span className="text-red-500">*</span>
+                  {t.profile.newPassword} <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="newPassword"
@@ -429,7 +448,7 @@ export default function ProfileForm({
                   disabled={isPasswordPending}
                   required
                   minLength={6}
-                  placeholder="Minimal 6 karakter..."
+                  placeholder={t.profile.newPasswordPlaceholder}
                   className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all outline-none"
                 />
               </div>
@@ -439,7 +458,7 @@ export default function ProfileForm({
                   htmlFor="confirmPassword"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5"
                 >
-                  Konfirmasi Password Baru <span className="text-red-500">*</span>
+                  {t.profile.confirmPassword} <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="confirmPassword"
@@ -450,7 +469,7 @@ export default function ProfileForm({
                   disabled={isPasswordPending}
                   required
                   minLength={6}
-                  placeholder="Ulangi password baru..."
+                  placeholder={t.profile.confirmPasswordPlaceholder}
                   className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all outline-none"
                 />
               </div>
@@ -468,10 +487,10 @@ export default function ProfileForm({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span>Mengubah Password...</span>
+                    <span>{t.profile.savingPassword}</span>
                   </>
                 ) : (
-                  <span>Simpan Password Baru</span>
+                  <span>{t.profile.savePassword}</span>
                 )}
               </button>
             </div>

@@ -1,4 +1,10 @@
+'use client';
+
+import { useI18n } from '@/lib/i18n/context';
+
 export default function FridayWfhBanner() {
+  const { t } = useI18n();
+
   return (
     <div
       role="status"
@@ -13,14 +19,14 @@ export default function FridayWfhBanner() {
       <div className="space-y-0.5 flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="text-xs sm:text-sm font-bold text-emerald-900">
-            Hari Jumat — WFH
+            {t.dashboard.fridayBannerTitle}
           </h3>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200/80 uppercase tracking-wider">
-            Bebas Lokasi
+            {t.dashboard.fridayBannerBadge}
           </span>
         </div>
         <p className="text-xs text-emerald-800/90 font-medium leading-relaxed">
-          Absensi dapat dilakukan dari lokasi mana saja.
+          {t.dashboard.fridayBannerDesc}
         </p>
       </div>
     </div>

@@ -1,4 +1,10 @@
+'use client';
+
+import { useI18n } from '@/lib/i18n/context';
+
 export default function WeekendHolidayBanner() {
+  const { t } = useI18n();
+
   return (
     <div
       role="status"
@@ -13,14 +19,14 @@ export default function WeekendHolidayBanner() {
       <div className="space-y-0.5 flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="text-xs sm:text-sm font-bold text-slate-900">
-            Sabtu–Minggu — Hari Libur
+            {t.dashboard.weekendBannerTitle}
           </h3>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 border border-slate-300/80 uppercase tracking-wider">
-            Libur Akhir Pekan
+            {t.dashboard.weekendBannerBadge}
           </span>
         </div>
         <p className="text-xs text-slate-600 font-medium leading-relaxed">
-          Absensi tidak tersedia pada hari Sabtu dan Minggu.
+          {t.dashboard.weekendBannerDesc}
         </p>
       </div>
     </div>

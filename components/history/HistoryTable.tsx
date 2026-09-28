@@ -6,12 +6,15 @@ import AttendanceStatusBadge from '@/components/dashboard/AttendanceStatusBadge'
 import LocationModal from '@/components/history/LocationModal';
 import SuratTugasDetailModal from '@/components/history/SuratTugasDetailModal';
 import DeleteSuratTugasModal from '@/components/history/DeleteSuratTugasModal';
+import { useI18n } from '@/lib/i18n/context';
+import { formatI18nDateOnlyLong } from '@/lib/i18n';
 
 interface HistoryTableProps {
   items: AttendanceHistoryItem[];
 }
 
 export default function HistoryTable({ items }: HistoryTableProps) {
+  const { t, locale } = useI18n();
   const [selectedRecord, setSelectedRecord] = useState<AttendanceHistoryItem | null>(null);
   const [deletingRecord, setDeletingRecord] = useState<AttendanceHistoryItem | null>(null);
   const [successNotification, setSuccessNotification] = useState<string | null>(null);
@@ -25,10 +28,10 @@ export default function HistoryTable({ items }: HistoryTableProps) {
           </svg>
         </div>
         <h3 className="text-base font-bold text-slate-900">
-          Tidak ada riwayat absensi
+          {t.history.emptyTitle}
         </h3>
         <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
-          Belum ada data absensi pada bulan yang dipilih.
+          {t.history.emptyDesc}
         </p>
       </div>
     );
@@ -55,7 +58,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
             type="button"
             onClick={() => setSuccessNotification(null)}
             className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold cursor-pointer p-1"
-            aria-label="Tutup notifikasi"
+            aria-label={t.common.close}
           >
             ✕
           </button>
@@ -68,13 +71,13 @@ export default function HistoryTable({ items }: HistoryTableProps) {
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                <th className="py-3.5 px-4 whitespace-nowrap">Tanggal</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Check-in</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Check-out</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Aksi / Lokasi</th>
-                <th className="py-3.5 px-4 min-w-[160px]">Keterangan</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Bukti</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">{t.history.tableDate}</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">{t.history.tableCheckIn}</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">{t.history.tableCheckOut}</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">{t.history.tableStatus}</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">{t.history.tableActionLocation}</th>
+                <th className="py-3.5 px-4 min-w-[160px]">{t.history.tableNotes}</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">{t.history.tableProof}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-800">
@@ -86,7 +89,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                 return (
                   <tr key={item.id} className="hover:bg-sky-50/20 transition-colors">
                     <td className="py-3.5 px-4 font-medium text-slate-900 whitespace-nowrap">
-                      {item.dateFormatted}
+                      {formatI18nDateOnlyLong(item.date, locale)}
                     </td>
 
                     <td className="py-3.5 px-4 font-mono text-slate-700 whitespace-nowrap">
@@ -103,7 +106,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       {item.status === 'RAPAT' ? (
                         <span className="font-sans font-semibold text-teal-800 text-xs">
-                          Rapat
+                          {t.status.meeting}
                         </span>
                       ) : item.checkOutFormatted ? (
                         <span className="flex items-center gap-1.5 text-sky-700 font-mono font-medium">
@@ -132,14 +135,14 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                             onClick={() => setSelectedRecord(item)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-xs font-semibold transition-colors cursor-pointer"
                           >
-                            Detail
+                            {t.history.detailBtn}
                           </button>
                           <button
                             type="button"
                             onClick={() => setDeletingRecord(item)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 text-xs font-semibold transition-colors cursor-pointer"
                           >
-                            Hapus
+                            {t.history.deleteBtn}
                           </button>
                         </div>
                       ) : hasLocation ? (
@@ -152,7 +155,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                           </svg>
-                          <span>Lihat Lokasi</span>
+                          <span>{t.history.viewLocationBtn}</span>
                         </button>
                       ) : (
                         <span className="text-slate-400 italic text-xs">-</span>
@@ -174,7 +177,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                           </svg>
-                          <span>Lihat Bukti</span>
+                          <span>{t.history.viewProofBtn}</span>
                         </a>
                       ) : (
                         <span className="text-slate-400 italic text-xs">-</span>
@@ -198,7 +201,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
               <div key={item.id} className="p-4 space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs sm:text-sm font-bold text-slate-900">
-                    {item.dateFormatted}
+                    {formatI18nDateOnlyLong(item.date, locale)}
                   </span>
                   <AttendanceStatusBadge
                     status={item.status}
@@ -210,7 +213,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                 <div className="grid grid-cols-2 gap-2 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 text-xs">
                   <div>
                     <span className="text-[10px] uppercase font-semibold text-slate-500 block mb-0.5">
-                      Check-in
+                      {t.history.tableCheckIn}
                     </span>
                     <span className="font-mono font-medium text-slate-800">
                       {item.checkInFormatted ?? '-'}
@@ -218,11 +221,11 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-semibold text-slate-500 block mb-0.5">
-                      Check-out
+                      {t.history.tableCheckOut}
                     </span>
                     {item.status === 'RAPAT' ? (
                       <span className="font-sans font-semibold text-teal-800">
-                        Rapat
+                        {t.status.meeting}
                       </span>
                     ) : (
                       <span className="font-mono font-medium text-slate-800">
@@ -240,34 +243,34 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                       onClick={() => setSelectedRecord(item)}
                       className="min-h-[36px] w-full rounded-lg bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 cursor-pointer text-center border border-indigo-200"
                     >
-                      Detail
+                      {t.history.detailBtn}
                     </button>
                     <button
                       type="button"
                       onClick={() => setDeletingRecord(item)}
                       className="min-h-[36px] w-full rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 cursor-pointer text-center border border-red-200"
                     >
-                      Hapus
+                      {t.history.deleteBtn}
                     </button>
                   </div>
                 ) : hasLocation ? (
                   <div className="flex items-center justify-between gap-2 pt-0.5">
                     <span className="text-xs text-slate-500 truncate flex-1 min-w-0">
-                      {item.address || item.address_out || 'Titik GPS tersimpan'}
+                      {item.address || item.address_out || (locale === 'en' ? 'GPS coordinates saved' : 'Titik GPS tersimpan')}
                     </span>
                     <button
                       type="button"
                       onClick={() => setSelectedRecord(item)}
                       className="min-h-[36px] px-3 py-1 rounded-lg bg-sky-50 text-[#006194] border border-sky-200 text-xs font-semibold shrink-0 cursor-pointer hover:bg-sky-100 transition-colors"
                     >
-                      Lihat Lokasi
+                      {t.history.viewLocationBtn}
                     </button>
                   </div>
                 ) : null}
 
                 {item.notes && (
                   <div className="text-xs text-slate-600 pt-0.5">
-                    <span className="font-semibold text-slate-700">Keterangan: </span>
+                    <span className="font-semibold text-slate-700">{t.history.tableNotes}: </span>
                     <span className="break-words">{item.notes}</span>
                   </div>
                 )}
@@ -283,7 +286,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                       </svg>
-                      <span>Lihat Bukti {item.status === 'IZIN' ? 'Izin' : 'Sakit'}</span>
+                      <span>{t.history.viewProofBtn} {item.status === 'IZIN' ? t.status.leave : t.status.sick}</span>
                     </a>
                   </div>
                 )}
@@ -306,7 +309,7 @@ export default function HistoryTable({ items }: HistoryTableProps) {
       <DeleteSuratTugasModal
         record={deletingRecord}
         onClose={() => setDeletingRecord(null)}
-        onSuccess={() => setSuccessNotification('Surat Tugas berhasil dihapus.')}
+        onSuccess={() => setSuccessNotification(t.actions.deleteSuratTugasSuccess)}
       />
     </>
   );

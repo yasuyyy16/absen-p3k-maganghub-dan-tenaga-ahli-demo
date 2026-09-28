@@ -541,7 +541,7 @@ async function runRapatFeatureTests() {
     let alfaGenResult;
     try {
       // Intercept user lookup: Return ONLY synthetic test users
-      prisma.users.findMany = (async (args?: any) => {
+      prisma.users.findMany = (async (args?: Parameters<typeof prisma.users.findMany>[0]) => {
         if (args?.where?.role === 'VIEWER') {
           return syntheticViewerList.map((u) => ({
             id: u.id,
@@ -550,10 +550,10 @@ async function runRapatFeatureTests() {
           }));
         }
         return realUsersFindMany(args);
-      }) as any;
+      }) as unknown as typeof prisma.users.findMany;
 
       // Intercept bulk creation: Assert all created IDs are strictly synthetic
-      prisma.attendances.createMany = (async (args: any) => {
+      prisma.attendances.createMany = (async (args: Parameters<typeof prisma.attendances.createMany>[0]) => {
         if (Array.isArray(args?.data)) {
           for (const item of args.data) {
             if (![primaryUser.id, absentUser.id].includes(item.person_id)) {
@@ -564,7 +564,7 @@ async function runRapatFeatureTests() {
           }
         }
         return realAttendancesCreateMany(args);
-      }) as any;
+      }) as unknown as typeof prisma.attendances.createMany;
 
       // Execute production generateAlfaAttendance function on isolated date
       alfaGenResult = await generateAlfaAttendance({

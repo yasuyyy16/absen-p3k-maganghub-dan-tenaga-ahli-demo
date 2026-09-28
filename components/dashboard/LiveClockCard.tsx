@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import AttendanceStatusBadge from '@/components/dashboard/AttendanceStatusBadge';
+import { useI18n } from '@/lib/i18n/context';
 
 interface LiveClockCardProps {
   initialDateFormatted: string;
@@ -16,6 +17,7 @@ export default function LiveClockCard({
   workStatus,
   isDevTimeOverride = false,
 }: LiveClockCardProps) {
+  const { t, locale } = useI18n();
   const [timeFormatted, setTimeFormatted] = useState(initialTimeFormatted);
   const [dateFormatted, setDateFormatted] = useState(initialDateFormatted);
 
@@ -36,7 +38,8 @@ export default function LiveClockCard({
           hour12: false,
         }).format(now) + ' WIB';
 
-      const dateStr = new Intl.DateTimeFormat('id-ID', {
+      const intlLocale = locale === 'en' ? 'en-US' : 'id-ID';
+      const dateStr = new Intl.DateTimeFormat(intlLocale, {
         timeZone: 'Asia/Jakarta',
         weekday: 'long',
         day: 'numeric',
@@ -48,9 +51,10 @@ export default function LiveClockCard({
       setDateFormatted(dateStr);
     };
 
+    updateClock();
     const interval = setInterval(updateClock, 1000);
     return () => clearInterval(interval);
-  }, [isDevTimeOverride]);
+  }, [isDevTimeOverride, locale]);
 
   const displayTime = isDevTimeOverride ? initialTimeFormatted : timeFormatted;
   const displayDate = isDevTimeOverride ? initialDateFormatted : dateFormatted;
@@ -64,7 +68,7 @@ export default function LiveClockCard({
       <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 sm:gap-6">
         <div className="min-w-0 text-left">
           <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">
-            Tanggal
+            {t.dashboard.dateLabel}
           </span>
           <p className="text-sm sm:text-base font-medium text-slate-700 truncate">
             {displayDate}
@@ -73,13 +77,13 @@ export default function LiveClockCard({
             {displayTimeWithoutZone}
           </h1>
           <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">
-            WIB (Waktu Indonesia Barat)
+            {t.dashboard.timezoneLabel}
           </p>
         </div>
 
         <div className="shrink-0 lg:text-right">
           <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-2">
-            Status Kerja
+            {t.dashboard.workStatusLabel}
           </span>
           <AttendanceStatusBadge status={workStatus} />
         </div>

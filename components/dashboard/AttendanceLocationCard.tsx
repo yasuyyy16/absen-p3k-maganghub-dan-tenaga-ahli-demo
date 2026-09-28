@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { getAccuracyInfo } from '@/lib/location';
+import { useI18n } from '@/lib/i18n/context';
 
 // Dynamically import map with SSR disabled to prevent window/Leaflet errors
 const AttendanceMap = dynamic(
@@ -50,6 +51,8 @@ export default function AttendanceLocationCard({
   isLiveLoading,
   liveError,
 }: AttendanceLocationCardProps) {
+  const { t } = useI18n();
+
   const hasInLocation = typeof latitude === 'number' && typeof longitude === 'number';
   const hasOutLocation = typeof latitudeOut === 'number' && typeof longitudeOut === 'number';
   const hasLiveLocation = typeof liveLatitude === 'number' && typeof liveLongitude === 'number';
@@ -64,12 +67,30 @@ export default function AttendanceLocationCard({
   const currentLat = showLive ? liveLatitude : isOut ? latitudeOut : latitude;
   const currentLon = showLive ? liveLongitude : isOut ? longitudeOut : longitude;
   const currentAccuracy = showLive ? liveAccuracy : isOut ? accuracyOut : accuracy;
-  const currentAddress = showLive ? 'Posisi Anda saat ini (Realtime GPS)' : isOut ? addressOut : address;
-  const currentTitle = showLive ? 'Posisi Anda Saat Ini' : isOut ? 'Lokasi Absen Pulang' : 'Lokasi Absen Pagi';
+  const currentAddress = showLive
+    ? t.dashboard.livePositionRealtime
+    : isOut
+    ? addressOut
+    : address;
+  const currentTitle = showLive
+    ? t.dashboard.livePositionCurrent
+    : isOut
+    ? t.dashboard.locationCheckOut
+    : t.dashboard.locationCheckIn;
   const hasSelectedLocation =
     typeof currentLat === 'number' && typeof currentLon === 'number';
 
-  const accuracyInfo = getAccuracyInfo(currentAccuracy ?? null);
+  const rawAccuracyInfo = getAccuracyInfo(currentAccuracy ?? null);
+  const accuracyLabel =
+    rawAccuracyInfo.level === 'GOOD'
+      ? t.accuracy.high
+      : rawAccuracyInfo.level === 'MODERATE'
+      ? t.accuracy.medium
+      : rawAccuracyInfo.level === 'LOW'
+      ? t.accuracy.low
+      : t.accuracy.unknown;
+
+  const accuracyWarning = rawAccuracyInfo.warning ? t.accuracy.warningLow : null;
 
   return (
     <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
@@ -77,16 +98,16 @@ export default function AttendanceLocationCard({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-base sm:text-lg font-bold text-slate-900">
-            Lokasi Presensi
+            {t.dashboard.locationSectionTitle}
           </h3>
           <p className="text-xs text-slate-500">
             {isFriday && !hasSelectedLocation
-              ? 'Hari Jumat — Work From Anywhere (Bebas Lokasi).'
+              ? t.dashboard.locationSubtitleFriday
               : isOut && !hasOutLocation
-              ? 'Presensi pulang bebas lokasi (tidak memerlukan titik koordinat GPS).'
+              ? t.dashboard.locationSubtitleOutFree
               : showLive
-              ? 'Menampilkan posisi GPS Anda secara realtime.'
-              : 'Titik koordinat geografis terekam saat melakukan presensi.'}
+              ? t.dashboard.locationSubtitleLive
+              : t.dashboard.locationSubtitleRecorded}
           </p>
         </div>
 
@@ -102,7 +123,7 @@ export default function AttendanceLocationCard({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Masuk
+              {t.dashboard.tabIn}
             </button>
             <button
               type="button"
@@ -113,7 +134,7 @@ export default function AttendanceLocationCard({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Pulang
+              {t.dashboard.tabOut}
             </button>
           </div>
         )}
@@ -137,7 +158,7 @@ export default function AttendanceLocationCard({
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          <span>Mencari lokasi Anda...</span>
+          <span>{t.dashboard.searchingLocation}</span>
         </div>
       )}
 
@@ -154,7 +175,7 @@ export default function AttendanceLocationCard({
           />
 
           {/* Accuracy Warning if GPS accuracy is low (>50m) */}
-          {accuracyInfo.warning && (
+          {accuracyWarning && (
             <div
               role="alert"
               className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs font-medium flex items-center gap-2"
@@ -162,7 +183,7 @@ export default function AttendanceLocationCard({
               <svg className="w-4 h-4 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
               </svg>
-              <span>{accuracyInfo.warning}</span>
+              <span>{accuracyWarning}</span>
             </div>
           )}
 
@@ -171,7 +192,7 @@ export default function AttendanceLocationCard({
             {/* Latitude */}
             <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
-                Latitude
+                {t.dashboard.latitude}
               </span>
               <span className="text-xs sm:text-sm font-bold font-mono text-slate-900 truncate block">
                 {currentLat.toFixed(6)}
@@ -181,7 +202,7 @@ export default function AttendanceLocationCard({
             {/* Longitude */}
             <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
-                Longitude
+                {t.dashboard.longitude}
               </span>
               <span className="text-xs sm:text-sm font-bold font-mono text-slate-900 truncate block">
                 {currentLon.toFixed(6)}
@@ -191,15 +212,15 @@ export default function AttendanceLocationCard({
             {/* Accuracy with Semantic Label */}
             <div className="col-span-2 sm:col-span-1 bg-slate-50/80 border border-slate-100 rounded-xl p-3">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
-                Akurasi GPS
+                {t.dashboard.gpsAccuracy}
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono">
-                  {accuracyInfo.formatted}
+                  {rawAccuracyInfo.formatted}
                 </span>
-                {accuracyInfo.level !== 'UNKNOWN' && (
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${accuracyInfo.badgeStyle}`}>
-                    {accuracyInfo.label}
+                {rawAccuracyInfo.level !== 'UNKNOWN' && (
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${rawAccuracyInfo.badgeStyle}`}>
+                    {accuracyLabel}
                   </span>
                 )}
               </div>
@@ -214,10 +235,10 @@ export default function AttendanceLocationCard({
             </svg>
             <div className="flex-1 min-w-0">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
-                Alamat / Wilayah
+                {t.dashboard.addressLabel}
               </span>
               <p className="text-xs sm:text-sm text-slate-800 font-medium leading-snug break-words">
-                {currentAddress || 'Alamat tidak tersedia'}
+                {currentAddress || t.dashboard.addressUnavailable}
               </p>
             </div>
           </div>
@@ -225,32 +246,32 @@ export default function AttendanceLocationCard({
       ) : isFriday && !hasSelectedLocation ? (
         <div className="p-6 bg-emerald-50/60 border border-dashed border-emerald-200 rounded-xl text-center space-y-1 text-emerald-800">
           <p className="text-xs sm:text-sm font-semibold">
-            Hari Jumat — WFH (Bebas Lokasi)
+            {t.dashboard.fridayWfhBadge}
           </p>
           <p className="text-xs text-emerald-700/90">
-            Presensi hari Jumat tidak memerlukan pencatatan lokasi GPS.
+            {t.dashboard.fridayWfhDesc}
           </p>
         </div>
       ) : showLive && !isLiveLoading ? (
         <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center space-y-1 text-slate-500">
           <p className="text-xs sm:text-sm font-medium">
-            Menunggu sinyal GPS perangkat...
+            {t.dashboard.waitingGps}
           </p>
           <p className="text-xs text-slate-400">
-            Pastikan izin lokasi/GPS aktif di perangkat Anda.
+            {t.dashboard.ensureGpsActive}
           </p>
         </div>
       ) : !showLive && !hasSelectedLocation ? (
         <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center space-y-1 text-slate-500">
           <p className="text-xs sm:text-sm font-medium">
             {isOut
-              ? 'Lokasi Absen Pulang belum tersedia.'
-              : 'Lokasi Absen Pagi belum tersedia.'}
+              ? t.dashboard.checkOutLocationUnavailable
+              : t.dashboard.checkInLocationUnavailable}
           </p>
           <p className="text-xs text-slate-400">
             {isOut
-              ? 'Presensi pulang dapat dilakukan dari lokasi mana saja (Bebas Lokasi).'
-              : 'Data lokasi tersimpan saat Anda melakukan Absen Pagi.'}
+              ? t.dashboard.freeLocationCheckout
+              : t.dashboard.locationRecordedOnCheckIn}
           </p>
         </div>
       ) : null}

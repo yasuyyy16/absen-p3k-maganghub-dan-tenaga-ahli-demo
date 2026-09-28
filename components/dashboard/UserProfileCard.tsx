@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { PersonDetails, PersonnelType } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/context';
 
 interface UserProfileCardProps {
   username: string;
@@ -13,9 +16,12 @@ export default function UserProfileCard({
   nama,
   personDetails,
 }: UserProfileCardProps) {
+  const { t } = useI18n();
   const customRole = personDetails?.jenisPersonel;
-  const roleLabel = customRole || 'Peserta';
-  const effectiveUniv = personDetails?.universitas || (personDetails?.jenisPersonel ? 'Unit P3K' : 'Profil belum lengkap');
+  const roleLabel = customRole || t.dashboard.profileRoleDefault;
+  const effectiveUniv =
+    personDetails?.universitas ||
+    (personDetails?.jenisPersonel ? 'Unit P3K' : t.dashboard.completeProfilePrompt);
 
   // Get initial character for avatar
   const initial = nama ? nama.charAt(0).toUpperCase() : username ? username.charAt(0).toUpperCase() : 'U';
@@ -74,7 +80,7 @@ export default function UserProfileCard({
           <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#006194]" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
           </svg>
-          <span>Pengaturan Akun</span>
+          <span>{t.dashboard.accountSettings}</span>
         </Link>
       </div>
     </div>

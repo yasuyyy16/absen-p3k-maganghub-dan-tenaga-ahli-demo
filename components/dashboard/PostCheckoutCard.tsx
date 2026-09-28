@@ -1,3 +1,7 @@
+'use client';
+
+import { useI18n } from '@/lib/i18n/context';
+
 interface PostCheckoutCardProps {
   checkInTimeFormatted: string;
   checkOutTimeFormatted: string;
@@ -7,6 +11,8 @@ export default function PostCheckoutCard({
   checkInTimeFormatted,
   checkOutTimeFormatted,
 }: PostCheckoutCardProps) {
+  const { t } = useI18n();
+
   return (
     <div className="bg-[#f0fdf4] border border-emerald-200 rounded-2xl p-6 sm:p-7 shadow-xs text-center relative overflow-hidden">
       <div className="flex flex-col items-center justify-center gap-2">
@@ -15,21 +21,21 @@ export default function PostCheckoutCard({
         </div>
 
         <span className="text-xs font-semibold uppercase tracking-wider text-emerald-800">
-          Status Kehadiran
+          {t.dashboard.completedStatusLabel}
         </span>
 
         <h3 className="text-lg sm:text-xl font-bold text-emerald-950">
-          Presensi Hari Ini Lengkap
+          {t.dashboard.completedHeading}
         </h3>
 
         <p className="text-xs sm:text-sm text-emerald-800 font-medium">
-          Seluruh rekaman presensi harian Anda telah tuntas dan tersimpan di sistem.
+          {t.dashboard.completedDesc}
         </p>
 
         <div className="grid grid-cols-2 gap-3 w-full max-w-xs mt-3">
           <div className="bg-white/90 border border-emerald-200 rounded-xl p-3 text-center">
             <span className="text-[10px] font-semibold text-slate-500 uppercase block">
-              Masuk
+              {t.dashboard.completedCheckIn}
             </span>
             <span className="text-xs sm:text-sm font-bold font-mono text-slate-900">
               {checkInTimeFormatted}
@@ -38,7 +44,7 @@ export default function PostCheckoutCard({
 
           <div className="bg-white/90 border border-emerald-200 rounded-xl p-3 text-center">
             <span className="text-[10px] font-semibold text-slate-500 uppercase block">
-              Pulang
+              {t.dashboard.completedCheckOut}
             </span>
             <span className="text-xs sm:text-sm font-bold font-mono text-slate-900">
               {checkOutTimeFormatted}

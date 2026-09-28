@@ -1,4 +1,10 @@
+'use client';
+
+import { useI18n } from '@/lib/i18n/context';
+
 export default function ReminderAlert() {
+  const { t } = useI18n();
+
   return (
     <div
       role="alert"
@@ -13,10 +19,10 @@ export default function ReminderAlert() {
       </div>
       <div className="space-y-0.5 flex-1">
         <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-900">
-          Pengingat Absen Pulang
+          {t.dashboard.reminderTitle}
         </h3>
         <p className="text-xs sm:text-sm text-amber-800 font-medium leading-relaxed">
-          Anda belum melakukan Absen Pulang hari ini. Segera lakukan Absen Pulang sebelum meninggalkan kantor.
+          {t.dashboard.reminderDesc}
         </p>
       </div>
     </div>

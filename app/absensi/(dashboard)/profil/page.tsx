@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import ProfileForm from '@/components/profile/ProfileForm';
+import { getDictionary } from '@/lib/i18n';
+import { getServerLocale } from '@/lib/i18n/server';
 
 export default async function ProfilePage() {
   const session = await getSession();
@@ -10,6 +12,9 @@ export default async function ProfilePage() {
   if (!session || session.role !== 'VIEWER') {
     redirect('/absensi/login');
   }
+
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
 
   // Fetch current user from shared `users` table
   const user = await prisma.users.findUnique({
@@ -39,18 +44,18 @@ export default async function ProfilePage() {
                   href="/absensi"
                   className="hover:text-[#006194] transition-colors focus:outline-none focus-visible:underline"
                 >
-                  Dashboard
+                  {t.common.dashboard}
                 </Link>
                 <span>/</span>
               </>
             ) : null}
-            <span className="text-slate-800 font-semibold">Profil & Pengaturan Akun</span>
+            <span className="text-slate-800 font-semibold">{t.profile.pageTitle}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Profil & Pengaturan Akun
+            {t.profile.pageTitle}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Kelola nama lengkap, kategori kepegawaian, universitas, username, dan kata sandi Anda.
+            {t.profile.pageSubtitle}
           </p>
         </div>
 
@@ -62,11 +67,11 @@ export default async function ProfilePage() {
             <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
-            <span>Kembali ke Dashboard</span>
+            <span>{t.profile.backToDashboard}</span>
           </Link>
         ) : (
           <div className="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs sm:text-sm font-medium self-start sm:self-auto">
-            <span>Selesaikan profil untuk membuka menu</span>
+            <span>{t.profile.completeProfileNotice}</span>
           </div>
         )}
       </div>
@@ -85,10 +90,10 @@ export default async function ProfilePage() {
           </div>
           <div className="space-y-0.5 flex-1 min-w-0">
             <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-900">
-              Profil Belum Lengkap
+              {t.profile.incompleteAlertTitle}
             </h3>
             <p className="text-xs sm:text-sm text-amber-800 font-medium leading-relaxed">
-              Silakan lengkapi <strong>Nama Lengkap</strong> dan <strong>Jenis Personel</strong> Anda pada formulir di bawah ini untuk membuka akses fitur absensi.
+              {t.profile.incompleteAlertDesc}
             </p>
           </div>
         </div>
@@ -111,10 +116,10 @@ export default async function ProfilePage() {
             </div>
             <div className="space-y-0.5 flex-1 min-w-0">
               <p className="text-sm sm:text-base font-bold text-amber-950">
-                passwordnya perbarui dulu lah cik
+                {t.profile.changePasswordBanner}
               </p>
               <p className="text-xs text-amber-800 font-medium">
-                Silakan ganti kata sandi akun Anda pada formulir Kata Sandi di bawah ini.
+                {t.profile.changePasswordBannerDesc}
               </p>
             </div>
           </div>
@@ -122,7 +127,7 @@ export default async function ProfilePage() {
             href="#ubah-password"
             className="shrink-0 min-h-[44px] px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
           >
-            <span>Ubah Password</span>
+            <span>{t.profile.changePasswordBtn}</span>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
             </svg>

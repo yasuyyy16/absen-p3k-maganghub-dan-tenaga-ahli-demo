@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAttendanceHistory } from '@/lib/attendance/history';
-import { formatWibMonthLong } from '@/lib/time';
+import { getDictionary, formatI18nMonthLong } from '@/lib/i18n';
+import { getServerLocale } from '@/lib/i18n/server';
 import MonthFilter from '@/components/history/MonthFilter';
 import HistoryTable from '@/components/history/HistoryTable';
 import Pagination from '@/components/history/Pagination';
@@ -46,6 +47,9 @@ export default async function RiwayatPage({ searchParams }: RiwayatPageProps) {
     redirect('/absensi/profil');
   }
 
+  const locale = await getServerLocale();
+  const dict = getDictionary(locale);
+
   const resolvedParams = await searchParams;
   const historyData = await getAttendanceHistory(
     session.userId,
@@ -53,7 +57,7 @@ export default async function RiwayatPage({ searchParams }: RiwayatPageProps) {
     resolvedParams?.page
   );
 
-  const monthFormatted = formatWibMonthLong(historyData.selectedMonth);
+  const monthFormatted = formatI18nMonthLong(historyData.selectedMonth, locale);
 
   return (
     <div className="space-y-5">
@@ -61,10 +65,10 @@ export default async function RiwayatPage({ searchParams }: RiwayatPageProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Riwayat Absensi
+            {dict.history.pageTitle}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Kelola dan pantau catatan kehadiran Anda pada bulan{' '}
+            {dict.history.subtitle}{' '}
             <strong className="text-slate-800 font-semibold">{monthFormatted}</strong>.
           </p>
         </div>
@@ -77,7 +81,7 @@ export default async function RiwayatPage({ searchParams }: RiwayatPageProps) {
             <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
-            <span>Dashboard</span>
+            <span>{dict.common.dashboard}</span>
           </Link>
 
           <MonthFilter currentMonth={historyData.selectedMonth} />

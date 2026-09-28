@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { deleteSuratTugasAction } from '@/app/actions/attendance';
 import { formatSuratTugasPeriod } from '@/lib/attendance/history';
 import { AttendanceHistoryItem } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/context';
 
 interface DeleteSuratTugasModalProps {
   record: AttendanceHistoryItem | null;
@@ -18,12 +19,15 @@ export default function DeleteSuratTugasModal({
   onSuccess,
 }: DeleteSuratTugasModalProps) {
   const router = useRouter();
+  const { t, locale } = useI18n();
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [prevRecordId, setPrevRecordId] = useState<number | undefined>(record?.id);
 
-  useEffect(() => {
+  if (record?.id !== prevRecordId) {
+    setPrevRecordId(record?.id);
     setErrorMessage(null);
-  }, [record]);
+  }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -55,7 +59,7 @@ export default function DeleteSuratTugasModal({
         }
         router.refresh();
       } else {
-        setErrorMessage(result.message || 'Gagal menghapus Surat Tugas.');
+        setErrorMessage(result.message || (locale === 'en' ? 'Failed to delete Assignment Letter.' : 'Gagal menghapus Surat Tugas.'));
       }
     });
   };
@@ -80,9 +84,9 @@ export default function DeleteSuratTugasModal({
             </div>
             <div>
               <h2 id="delete-surat-tugas-title" className="text-base font-bold text-slate-900">
-                Hapus Surat Tugas?
+                {t.history.modalDeleteTitle}
               </h2>
-              <p className="text-xs text-slate-500">Konfirmasi Penghapusan</p>
+              <p className="text-xs text-slate-500">{t.history.modalDeleteSubtitle}</p>
             </div>
           </div>
           <button
@@ -90,7 +94,7 @@ export default function DeleteSuratTugasModal({
             onClick={onClose}
             disabled={isPending}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50"
-            aria-label="Tutup modal"
+            aria-label={t.common.close}
           >
             ×
           </button>
@@ -108,27 +112,27 @@ export default function DeleteSuratTugasModal({
 
         <div className="space-y-3">
           <p className="text-xs text-slate-600 leading-relaxed">
-            Surat Tugas ini akan dihapus secara permanen. Seluruh catatan absensi yang dibuat dari Surat Tugas ini juga akan dihapus.
+            {t.history.modalDeleteDesc}
           </p>
 
           <p className="text-xs font-semibold text-red-600">
-            Tindakan ini tidak dapat dibatalkan.
+            {t.history.modalDeleteWarning}
           </p>
 
           {suratTugas && (
             <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 space-y-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-500">Nomor Surat:</span>
+                <span className="text-slate-500">{t.history.detailNumber}:</span>
                 <span className="font-semibold text-slate-800">{suratTugas.nomor_surat_tugas}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Periode:</span>
+                <span className="text-slate-500">{t.history.detailPeriod}:</span>
                 <span className="font-semibold text-slate-800">
                   {formatSuratTugasPeriod(suratTugas.mulai_tugas, suratTugas.selesai_tugas)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Lokasi:</span>
+                <span className="text-slate-500">{t.history.detailLocation}:</span>
                 <span className="font-medium text-slate-700 max-w-[200px] truncate text-right">
                   {suratTugas.lokasi}
                 </span>
@@ -144,7 +148,7 @@ export default function DeleteSuratTugasModal({
             disabled={isPending}
             className="min-h-[40px] px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer disabled:opacity-50"
           >
-            Batal
+            {t.history.deleteCancelBtn}
           </button>
           <button
             type="button"
@@ -158,10 +162,10 @@ export default function DeleteSuratTugasModal({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                <span>Menghapus...</span>
+                <span>{t.history.deletingBtn}</span>
               </>
             ) : (
-              <span>Hapus Surat Tugas</span>
+              <span>{t.history.deleteConfirmBtn}</span>
             )}
           </button>
         </div>

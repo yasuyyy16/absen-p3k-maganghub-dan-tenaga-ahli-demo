@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useI18n } from '@/lib/i18n/context';
 
 interface AttendanceMapProps {
   latitude: number;
@@ -21,18 +22,23 @@ export default function AttendanceMap({
   title = 'Lokasi Presensi',
   heightClass = 'h-48 sm:h-64',
 }: AttendanceMapProps) {
+  const { locale } = useI18n();
+  const fallbackCoord = locale === 'en' ? 'GPS Coordinates Point' : 'Titik Koordinat GPS';
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const circleRef = useRef<L.Circle | null>(null);
+
+  const initialStateRef = useRef({ latitude, longitude, accuracy, address, title, fallbackCoord });
 
   // Initialize map once
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
     try {
+      const initial = initialStateRef.current;
       const map = L.map(mapContainerRef.current, {
-        center: [latitude, longitude],
+        center: [initial.latitude, initial.longitude],
         zoom: 16,
         zoomControl: true,
         attributionControl: false,
@@ -61,21 +67,21 @@ export default function AttendanceMap({
         popupAnchor: [0, -18],
       });
 
-      const marker = L.marker([latitude, longitude], { icon: customIcon }).addTo(map);
+      const marker = L.marker([initial.latitude, initial.longitude], { icon: customIcon }).addTo(map);
       markerRef.current = marker;
 
       const popupContent = `
         <div style="font-family: var(--font-inter, sans-serif); font-size: 12px; padding: 2px;">
-          <strong style="color: #006194; display: block; margin-bottom: 2px;">${title}</strong>
-          <span style="color: #475569; font-size: 11px; display: block;">${address || 'Titik Koordinat GPS'}</span>
-          <span style="color: #64748b; font-family: monospace; font-size: 10px; margin-top: 4px; display: block;">${latitude.toFixed(6)}, ${longitude.toFixed(6)}</span>
+          <strong style="color: #006194; display: block; margin-bottom: 2px;">${initial.title}</strong>
+          <span style="color: #475569; font-size: 11px; display: block;">${initial.address || initial.fallbackCoord}</span>
+          <span style="color: #64748b; font-family: monospace; font-size: 10px; margin-top: 4px; display: block;">${initial.latitude.toFixed(6)}, ${initial.longitude.toFixed(6)}</span>
         </div>
       `;
       marker.bindPopup(popupContent);
 
-      if (typeof accuracy === 'number' && accuracy > 0 && accuracy < 500) {
-        const circle = L.circle([latitude, longitude], {
-          radius: accuracy,
+      if (typeof initial.accuracy === 'number' && initial.accuracy > 0 && initial.accuracy < 500) {
+        const circle = L.circle([initial.latitude, initial.longitude], {
+          radius: initial.accuracy,
           color: '#006194',
           fillColor: '#006194',
           fillOpacity: 0.12,
@@ -116,7 +122,7 @@ export default function AttendanceMap({
     const popupContent = `
       <div style="font-family: var(--font-inter, sans-serif); font-size: 12px; padding: 2px;">
         <strong style="color: #006194; display: block; margin-bottom: 2px;">${title}</strong>
-        <span style="color: #475569; font-size: 11px; display: block;">${address || 'Titik Koordinat GPS'}</span>
+        <span style="color: #475569; font-size: 11px; display: block;">${address || fallbackCoord}</span>
         <span style="color: #64748b; font-family: monospace; font-size: 10px; margin-top: 4px; display: block;">${latitude.toFixed(6)}, ${longitude.toFixed(6)}</span>
       </div>
     `;
@@ -140,7 +146,7 @@ export default function AttendanceMap({
     }
 
     map.panTo(newLatLng, { animate: true });
-  }, [latitude, longitude, accuracy, address, title]);
+  }, [latitude, longitude, accuracy, address, title, fallbackCoord]);
 
   return (
     <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 shadow-2xs">

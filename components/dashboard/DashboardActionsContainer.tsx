@@ -16,7 +16,17 @@ interface DashboardActionsContainerProps {
   isWeekend: boolean;
   isWindowClosed: boolean;
   isFriday?: boolean;
-  todayAttendance: any;
+  todayAttendance: {
+    status?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    accuracy?: number | null;
+    address?: string | null;
+    latitude_out?: number | null;
+    longitude_out?: number | null;
+    accuracy_out?: number | null;
+    address_out?: string | null;
+  } | null;
 }
 
 export default function DashboardActionsContainer({
@@ -31,23 +41,18 @@ export default function DashboardActionsContainer({
   todayAttendance,
 }: DashboardActionsContainerProps) {
   const isRapat = todayAttendance?.status === 'RAPAT';
+  const needsLiveLocation = !isFriday && !isWeekend && !isCheckedIn && !isLeave && !isRapat;
+
   const [liveLocation, setLiveLocation] = useState<LocationPayload | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(!isFriday && !isCheckedIn && !isRapat);
+  // Default to true only if we actually need the location initially
+  const [isLoading, setIsLoading] = useState(needsLiveLocation);
 
   useEffect(() => {
-    // GPS is only needed on Monday-Thursday before Absen Pagi.
-    // Friday is WFA, Absen Pulang is location-independent, and Rapat does not require GPS.
-    const needsLiveLocation = !isFriday && !isWeekend && !isCheckedIn && !isLeave && !isRapat;
-
     if (!needsLiveLocation) {
-      setIsLoading(false);
-      setLiveLocation(null);
-      setLiveError(null);
       return;
     }
 
-    setIsLoading(true);
     const cleanup = watchBrowserLocation(
       (location) => {
         setLiveLocation(location);
@@ -63,7 +68,11 @@ export default function DashboardActionsContainer({
     return () => {
       cleanup();
     };
-  }, [isCheckedIn, isCheckedOut, isLeave, isFriday, isWeekend, isRapat]);
+  }, [needsLiveLocation]);
+
+  const displayLiveLocation = needsLiveLocation ? liveLocation : null;
+  const displayLiveError = needsLiveLocation ? liveError : null;
+  const displayIsLoading = needsLiveLocation ? isLoading : false;
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -79,11 +88,11 @@ export default function DashboardActionsContainer({
           accuracyOut={todayAttendance?.accuracy_out ?? null}
           addressOut={todayAttendance?.address_out ?? null}
           isFriday={isFriday}
-          liveLatitude={liveLocation?.latitude}
-          liveLongitude={liveLocation?.longitude}
-          liveAccuracy={liveLocation?.accuracy}
-          isLiveLoading={isLoading}
-          liveError={liveError}
+          liveLatitude={displayLiveLocation?.latitude}
+          liveLongitude={displayLiveLocation?.longitude}
+          liveAccuracy={displayLiveLocation?.accuracy}
+          isLiveLoading={displayIsLoading}
+          liveError={displayLiveError}
         />
       )}
 
@@ -97,8 +106,8 @@ export default function DashboardActionsContainer({
             isWeekend={isWeekend}
             isWindowClosed={isWindowClosed}
             isFriday={isFriday}
-            liveLocation={liveLocation}
-            liveError={liveError}
+            liveLocation={displayLiveLocation}
+            liveError={displayLiveError}
           />
 
           <AbsenPulangCard
@@ -108,8 +117,8 @@ export default function DashboardActionsContainer({
             isLeave={false}
             isWeekend={isWeekend}
             isFriday={isFriday}
-            liveLocation={liveLocation}
-            liveError={liveError}
+            liveLocation={displayLiveLocation}
+            liveError={displayLiveError}
           />
         </div>
       )}

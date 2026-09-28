@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getDictionary } from '@/lib/i18n';
+import { getServerLocale } from '@/lib/i18n/server';
 import SuratTugasForm from '@/components/dashboard/SuratTugasForm';
 
 export const metadata: Metadata = {
@@ -33,6 +35,9 @@ export default async function SuratTugasBaruPage() {
     redirect('/absensi/profil');
   }
 
+  const locale = await getServerLocale();
+  const dict = getDictionary(locale);
+
   return (
     <div className="space-y-5 sm:space-y-6 max-w-2xl mx-auto">
       <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs">
@@ -47,19 +52,19 @@ export default async function SuratTugasBaruPage() {
           </Link>
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-slate-900">
-              Buat Surat Tugas
+              {dict.suratTugas.heading}
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              Catat penugasan resmi dari P3K.
+              {dict.suratTugas.subheading}
             </p>
           </div>
         </div>
 
         <div className="bg-sky-50 border border-sky-100 rounded-xl p-4 mb-5">
           <ul className="text-xs sm:text-sm text-sky-800 list-disc list-outside ml-4 space-y-1">
-            <li>Pilih rentang tanggal penugasan (mulai hingga selesai).</li>
-            <li>Hari libur akhir pekan (Sabtu-Minggu) akan otomatis diabaikan.</li>
-            <li>Jika Anda sudah memiliki catatan absensi (Hadir/Izin/Sakit/Rapat) pada tanggal yang dipilih, proses pembuatan akan ditolak.</li>
+            <li>{dict.suratTugas.info1}</li>
+            <li>{dict.suratTugas.info2}</li>
+            <li>{dict.suratTugas.info3}</li>
           </ul>
         </div>
 

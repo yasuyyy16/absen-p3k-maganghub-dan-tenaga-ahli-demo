@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useI18n } from '@/lib/i18n/context';
 
 interface AttendanceConfirmModalProps {
   isOpen: boolean;
@@ -21,14 +22,17 @@ export default function AttendanceConfirmModal({
   isPending,
   isFriday = false,
 }: AttendanceConfirmModalProps) {
+  const { t, locale } = useI18n();
   const isBusy = isGeoLoading || isPending;
   const isPagi = mode === 'PAGI';
 
-  const modalTitle = isPagi ? 'Konfirmasi Absen Pagi' : 'Konfirmasi Absen Pulang';
+  const modalTitle = isPagi ? t.dashboard.confirmCheckInTitle : t.dashboard.confirmCheckOutTitle;
   const confirmMessage = isPagi
-    ? 'Apakah Anda yakin ingin mencatat Absen Pagi sekarang?'
-    : 'Apakah Anda yakin ingin mencatat Absen Pulang sekarang?';
-  const confirmButtonLabel = isPagi ? 'Konfirmasi Absen' : 'Konfirmasi Absen Pulang';
+    ? t.dashboard.confirmCheckInMsg
+    : t.dashboard.confirmCheckOutMsg;
+  const confirmButtonLabel = isPagi
+    ? t.dashboard.confirmCheckInBtn
+    : t.dashboard.confirmCheckOutBtn;
 
   // Handle Escape key to close modal
   useEffect(() => {
@@ -92,10 +96,10 @@ export default function AttendanceConfirmModal({
             </h2>
             <p className="text-xs text-slate-500">
               {isFriday
-                ? 'Presensi digital WFA (Bebas Lokasi)'
+                ? (locale === 'en' ? 'Digital attendance WFA (Location Free)' : 'Presensi digital WFA (Bebas Lokasi)')
                 : isPagi
-                ? 'Presensi digital berbasis lokasi GPS'
-                : 'Presensi digital bebas lokasi'}
+                ? (locale === 'en' ? 'GPS location-based digital attendance' : 'Presensi digital berbasis lokasi GPS')
+                : (locale === 'en' ? 'Digital attendance location free' : 'Presensi digital bebas lokasi')}
             </p>
           </div>
         </div>
@@ -113,8 +117,8 @@ export default function AttendanceConfirmModal({
             </svg>
             <span className="leading-snug">
               {isFriday || !isPagi
-                ? 'Waktu presensi aktual akan terekam secara otomatis oleh sistem.'
-                : 'Titik koordinat GPS dan waktu presensi aktual akan terekam secara otomatis oleh sistem.'}
+                ? t.dashboard.confirmCheckOutDesc
+                : t.dashboard.confirmCheckInDescOffice}
             </span>
           </div>
         </div>
@@ -127,7 +131,7 @@ export default function AttendanceConfirmModal({
             disabled={isBusy}
             className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Batal
+            {t.common.cancel}
           </button>
           <button
             type="button"
@@ -141,7 +145,7 @@ export default function AttendanceConfirmModal({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                <span>Mengambil Lokasi GPS...</span>
+                <span>{locale === 'en' ? 'Retrieving GPS Location...' : 'Mengambil Lokasi GPS...'}</span>
               </>
             ) : isPending ? (
               <>
@@ -149,7 +153,11 @@ export default function AttendanceConfirmModal({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                <span>{isPagi ? 'Mencatat Presensi...' : 'Mencatat Pulang...'}</span>
+                <span>
+                  {isPagi
+                    ? (locale === 'en' ? 'Recording Attendance...' : 'Mencatat Presensi...')
+                    : (locale === 'en' ? 'Recording Check-Out...' : 'Mencatat Pulang...')}
+                </span>
               </>
             ) : (
               <span>{confirmButtonLabel}</span>

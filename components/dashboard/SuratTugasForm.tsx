@@ -3,9 +3,11 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { suratTugasAction } from '@/app/actions/attendance';
+import { useI18n } from '@/lib/i18n/context';
 
 export default function SuratTugasForm() {
   const router = useRouter();
+  const { t, locale } = useI18n();
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -23,7 +25,7 @@ export default function SuratTugasForm() {
     const endDate = formData.get('end_date')?.toString();
     
     if (startDate && endDate && endDate < startDate) {
-      setErrorMessage('Tanggal selesai tidak boleh sebelum tanggal mulai.');
+      setErrorMessage(t.suratTugas.dateError);
       return;
     }
 
@@ -55,13 +57,13 @@ export default function SuratTugasForm() {
             htmlFor="nomor_surat_tugas"
             className="block text-xs font-bold uppercase tracking-wider text-slate-700"
           >
-            Nomor Surat Tugas <span className="text-red-500">*</span>
+            {t.suratTugas.nomorLabel} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             id="nomor_surat_tugas"
             name="nomor_surat_tugas"
-            placeholder="Contoh: ST/123/2026"
+            placeholder={t.suratTugas.nomorPlaceholder}
             required
             disabled={isPending}
             className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#006194] focus:border-[#006194] disabled:bg-slate-50 disabled:text-slate-400 placeholder:text-slate-400"
@@ -73,7 +75,7 @@ export default function SuratTugasForm() {
             htmlFor="tanggal_terbit"
             className="block text-xs font-bold uppercase tracking-wider text-slate-700"
           >
-            Tanggal Terbit <span className="text-red-500">*</span>
+            {t.suratTugas.tanggalTerbitLabel} <span className="text-red-500">*</span>
           </label>
           <input
             type="date"
@@ -91,7 +93,7 @@ export default function SuratTugasForm() {
             htmlFor="start_date"
             className="block text-xs font-bold uppercase tracking-wider text-slate-700"
           >
-            Tanggal Mulai <span className="text-red-500">*</span>
+            {t.suratTugas.startDateLabel} <span className="text-red-500">*</span>
           </label>
           <input
             type="date"
@@ -109,7 +111,7 @@ export default function SuratTugasForm() {
             htmlFor="end_date"
             className="block text-xs font-bold uppercase tracking-wider text-slate-700"
           >
-            Tanggal Selesai <span className="text-red-500">*</span>
+            {t.suratTugas.endDateLabel} <span className="text-red-500">*</span>
           </label>
           <input
             type="date"
@@ -128,12 +130,12 @@ export default function SuratTugasForm() {
           htmlFor="lokasi"
           className="block text-xs font-bold uppercase tracking-wider text-slate-700"
         >
-          Lokasi Tujuan <span className="text-red-500">*</span>
+          {t.suratTugas.locationLabel} <span className="text-red-500">*</span>
         </label>
         <textarea
           id="lokasi"
           name="lokasi"
-          placeholder="Contoh: Jakarta Pusat, DKI Jakarta..."
+          placeholder={t.suratTugas.locationPlaceholder}
           rows={3}
           maxLength={500}
           disabled={isPending}
@@ -141,7 +143,7 @@ export default function SuratTugasForm() {
           required
         />
         <div className="text-[11px] text-slate-500 text-right">
-          Maksimal 500 karakter
+          {locale === 'en' ? 'Maximum 500 characters' : 'Maksimal 500 karakter'}
         </div>
       </div>
 
@@ -152,7 +154,7 @@ export default function SuratTugasForm() {
           disabled={isPending}
           className="min-h-[44px] px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer disabled:opacity-50"
         >
-          Batal
+          {t.common.cancel}
         </button>
         <button
           type="submit"
@@ -165,10 +167,10 @@ export default function SuratTugasForm() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span>Menyimpan...</span>
+              <span>{t.suratTugas.submittingBtn}</span>
             </>
           ) : (
-            <span>Buat Surat Tugas</span>
+            <span>{t.suratTugas.submitBtn}</span>
           )}
         </button>
       </div>

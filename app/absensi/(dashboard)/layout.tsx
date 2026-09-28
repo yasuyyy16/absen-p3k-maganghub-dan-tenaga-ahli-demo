@@ -5,6 +5,8 @@ import { getSession } from '@/lib/auth';
 import { logoutAction } from '@/app/actions/auth';
 import BottomNav from '@/components/layout/BottomNav';
 import { getWibDateParts } from '@/lib/time';
+import { getDictionary } from '@/lib/i18n';
+import { getServerLocale } from '@/lib/i18n/server';
 
 export const metadata: Metadata = {
   title: 'Dashboard Absensi - P3K MagangHub & Tenaga Ahli',
@@ -21,6 +23,8 @@ export default async function DashboardLayout({
     redirect('/absensi/login');
   }
 
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
   const isProfileComplete = Boolean(session.isProfileComplete);
 
   return (
@@ -37,10 +41,10 @@ export default async function DashboardLayout({
             </div>
             <div>
               <span className="text-base font-bold text-[#006194] leading-tight block">
-                Sistem Absensi
+                {t.nav.systemTitle}
               </span>
               <span className="text-xs text-slate-500 hidden sm:block">
-                MagangHub & Tenaga Ahli
+                {t.nav.systemSubtitle}
               </span>
             </div>
           </Link>
@@ -52,14 +56,14 @@ export default async function DashboardLayout({
                 href="/absensi"
                 className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-[#006194] hover:bg-sky-50 text-xs sm:text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] flex items-center gap-1.5"
               >
-                Dashboard
+                {t.common.dashboard}
               </Link>
             ) : (
               <span
-                title="Lengkapi profil terlebih dahulu"
+                title={t.nav.completeProfileFirst}
                 className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-400 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-not-allowed opacity-60"
               >
-                Dashboard
+                {t.common.dashboard}
               </span>
             )}
 
@@ -68,14 +72,14 @@ export default async function DashboardLayout({
                 href="/absensi/riwayat"
                 className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-[#006194] hover:bg-sky-50 text-xs sm:text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] flex items-center gap-1.5"
               >
-                Riwayat
+                {t.common.history}
               </Link>
             ) : (
               <span
-                title="Lengkapi profil terlebih dahulu"
+                title={t.nav.completeProfileFirst}
                 className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-400 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-not-allowed opacity-60"
               >
-                Riwayat
+                {t.common.history}
               </span>
             )}
 
@@ -83,7 +87,7 @@ export default async function DashboardLayout({
               href="/absensi/profil"
               className="min-h-[40px] px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-[#006194] hover:bg-sky-50 text-xs sm:text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] flex items-center gap-1.5"
             >
-              Profil
+              {t.common.profile}
             </Link>
 
             <div className="w-px h-5 bg-slate-200 mx-1" />
@@ -96,7 +100,7 @@ export default async function DashboardLayout({
                 <svg className="w-4 h-4 text-slate-400 group-hover:text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
                 </svg>
-                <span>Keluar</span>
+                <span>{t.common.logout}</span>
               </button>
             </form>
           </div>
@@ -124,7 +128,9 @@ export default async function DashboardLayout({
       <footer className="border-t border-slate-200/80 bg-white py-5 mt-auto text-center hidden sm:block">
         <div className="max-w-4xl mx-auto px-4">
           <p className="text-xs text-slate-500">
-            Unit P3K &copy; {getWibDateParts().year} &bull; Sistem Absensi Internal Kementerian Kelautan dan Perikanan
+            {locale === 'en'
+              ? `Unit P3K \u00a9 ${getWibDateParts().year} \u2022 Ministry of Marine Affairs and Fisheries Internal Attendance System`
+              : `Unit P3K \u00a9 ${getWibDateParts().year} \u2022 Sistem Absensi Internal Kementerian Kelautan dan Perikanan`}
           </p>
         </div>
       </footer>

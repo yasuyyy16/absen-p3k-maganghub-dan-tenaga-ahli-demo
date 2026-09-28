@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { SessionPayload, Role } from './types';
+import { SessionPayload } from './types';
 
 export const SESSION_COOKIE_NAME = 'absensi_session';
 export const SESSION_MAX_AGE_SECONDS = 43200; // 12 hours

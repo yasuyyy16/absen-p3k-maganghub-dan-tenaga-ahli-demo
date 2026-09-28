@@ -1,4 +1,7 @@
+'use client';
+
 import { AttendanceStatus } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/context';
 
 export type ExtendedAttendanceStatus =
   | AttendanceStatus
@@ -19,7 +22,9 @@ export default function AttendanceStatusBadge({
   hasCheckIn,
   hasCheckOut,
 }: AttendanceStatusBadgeProps) {
-  let label = 'Belum Absen';
+  const { t } = useI18n();
+
+  let label = t.status.notRecorded;
   let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200';
   let dotStyle = 'bg-slate-400';
 
@@ -37,31 +42,31 @@ export default function AttendanceStatusBadge({
   }
 
   if (effectiveStatus === 'LENGKAP' || effectiveStatus === 'SUDAH_PULANG') {
-    label = 'Lengkap';
+    label = t.status.complete;
     badgeStyle = 'bg-emerald-50 text-emerald-900 border-emerald-200/80';
     dotStyle = 'bg-emerald-500';
   } else if (effectiveStatus === 'SUDAH_PAGI' || effectiveStatus === 'HADIR') {
-    label = 'Sudah Absen Pagi';
+    label = t.status.checkedIn;
     badgeStyle = 'bg-amber-50 text-amber-900 border-amber-200/80';
     dotStyle = 'bg-amber-500';
   } else if (effectiveStatus === 'IZIN') {
-    label = 'Izin';
+    label = t.status.leave;
     badgeStyle = 'bg-sky-50 text-[#006194] border-sky-200/80';
     dotStyle = 'bg-[#006194]';
   } else if (effectiveStatus === 'SAKIT') {
-    label = 'Sakit';
+    label = t.status.sick;
     badgeStyle = 'bg-purple-50 text-purple-900 border-purple-200/80';
     dotStyle = 'bg-purple-600';
   } else if (effectiveStatus === 'ALFA') {
-    label = 'Alfa';
+    label = t.status.absent;
     badgeStyle = 'bg-red-50 text-red-900 border-red-200/80';
     dotStyle = 'bg-red-500';
   } else if (effectiveStatus === 'RAPAT') {
-    label = 'Rapat';
+    label = t.status.meeting;
     badgeStyle = 'bg-teal-50 text-teal-900 border-teal-200/80';
     dotStyle = 'bg-teal-600';
   } else if (effectiveStatus === 'SURAT_TUGAS') {
-    label = 'Surat Tugas';
+    label = t.status.assignmentLetter;
     badgeStyle = 'bg-indigo-50 text-indigo-900 border-indigo-200/80';
     dotStyle = 'bg-indigo-600';
   }

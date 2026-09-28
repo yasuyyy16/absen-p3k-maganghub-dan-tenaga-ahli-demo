@@ -7,12 +7,14 @@ import {
 } from '@/app/actions/attendance';
 import { MAX_PROOF_FILE_SIZE, validateProofFile } from '@/lib/constants/attendance';
 import { compressImageProof, isCompressibleImage } from '@/lib/image-compression';
+import { useI18n } from '@/lib/i18n/context';
 
 interface IzinSakitModalProps {
   mode?: 'CREATE' | 'CONVERT';
 }
 
 export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [status, setStatus] = useState<'IZIN' | 'SAKIT'>('IZIN');
@@ -24,9 +26,9 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isConvert = mode === 'CONVERT';
-  const modalTitle = isConvert ? 'Ubah Status ke Izin / Sakit' : 'Pengajuan Izin / Sakit';
-  const buttonLabel = isConvert ? 'Ubah Status ke Izin / Sakit' : 'Pengajuan Izin / Sakit';
-  const statusLabel = status === 'IZIN' ? 'IZIN' : 'SAKIT';
+  const modalTitle = isConvert ? t.leaveModal.titleConvert : t.leaveModal.titleCreate;
+  const buttonLabel = isConvert ? t.leaveModal.btnConvert : t.leaveModal.btnCreate;
+  const statusLabel = status === 'IZIN' ? t.status.leave : t.status.sick;
 
   // Handle Escape key navigation (Accessibility)
   useEffect(() => {
@@ -249,7 +251,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                   onClick={() => !isPending && !isCompressing && setIsOpen(false)}
                   disabled={isPending || isCompressing}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-50"
-                  aria-label="Tutup modal"
+                  aria-label={t.common.close}
                 >
                   ✕
                 </button>
@@ -257,7 +259,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
 
               {isConvert && (
                 <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 text-xs font-medium leading-relaxed">
-                  Perhatian: Mengubah status akan membatalkan Absen Pagi hari ini dan mencatat kehadiran Anda sebagai Izin atau Sakit.
+                  {t.leaveModal.convertNotice}
                 </div>
               )}
 
@@ -274,7 +276,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
               <form onSubmit={handleFirstStepSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
-                    Jenis Ketidakhadiran
+                    {t.leaveModal.leaveTypeLabel}
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     {/* Sakit Option */}
@@ -297,7 +299,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                       <svg className={`w-6 h-6 mb-1 ${status === 'SAKIT' ? 'text-purple-700' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                       </svg>
-                      <span className="font-semibold text-xs sm:text-sm">Sakit</span>
+                      <span className="font-semibold text-xs sm:text-sm">{t.leaveModal.sickLabel}</span>
                     </label>
 
                     {/* Izin Option */}
@@ -320,7 +322,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                       <svg className={`w-6 h-6 mb-1 ${status === 'IZIN' ? 'text-[#006194]' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                       </svg>
-                      <span className="font-semibold text-xs sm:text-sm">Izin</span>
+                      <span className="font-semibold text-xs sm:text-sm">{t.leaveModal.leaveLabel}</span>
                     </label>
                   </div>
                 </div>
@@ -331,7 +333,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                       htmlFor="notes"
                       className="block text-xs font-semibold uppercase tracking-wider text-slate-600"
                     >
-                      Keterangan (Opsional)
+                      {t.leaveModal.notesLabel}
                     </label>
                     <span className="text-xs text-slate-400 font-mono">
                       {notes.length}/500
@@ -345,7 +347,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isPending || isCompressing}
-                    placeholder="Tuliskan alasan pengajuan izin atau sakit..."
+                    placeholder={t.leaveModal.notesPlaceholder}
                     className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50/50 text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 transition-all resize-none outline-none"
                   />
                 </div>
@@ -355,7 +357,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                     htmlFor="proof"
                     className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5"
                   >
-                    Bukti Pendukung <span className="text-red-500">*</span>
+                    {t.leaveModal.proofLabel} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="file"
@@ -373,7 +375,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                       </svg>
-                      <span>Mengoptimalkan ukuran gambar dokumen...</span>
+                      <span>{t.leaveModal.compressingMsg}</span>
                     </div>
                   )}
                   {compressionInfo && (
@@ -385,7 +387,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                     </div>
                   )}
                   <p className="mt-2 text-[11px] text-slate-500">
-                    Bukti wajib diunggah untuk IZIN/SAKIT. Format: JPG, JPEG, PNG, PDF. Maksimal ukuran: 1 MB.
+                    {t.leaveModal.proofHint}
                   </p>
                 </div>
 
@@ -396,7 +398,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                     disabled={isPending || isCompressing}
                     className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-60"
                   >
-                    Batal
+                    {t.leaveModal.cancelBtn}
                   </button>
                   <button
                     type="submit"
@@ -405,12 +407,12 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                   >
                     <span>
                       {isPending
-                        ? 'Memproses...'
+                        ? t.leaveModal.submitProcessing
                         : isCompressing
-                        ? 'Mengoptimalkan...'
+                        ? t.leaveModal.compressingMsg
                         : isConvert
-                        ? 'Lanjutkan'
-                        : 'Ajukan'}
+                        ? t.leaveModal.submitConvert
+                        : t.leaveModal.submitCreate}
                     </span>
                   </button>
                 </div>
@@ -429,37 +431,23 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                   id="confirm-modal-title"
                   className="text-base sm:text-lg font-bold text-slate-900"
                 >
-                  Konfirmasi Perubahan Status
+                  {t.leaveModal.confirmModalTitle}
                 </h2>
               </div>
 
               <div className="space-y-3">
                 <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                  Anda akan mengubah status presensi hari ini dari{' '}
-                  <span className="font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded">
-                    HADIR
-                  </span>{' '}
-                  menjadi{' '}
-                  <span
-                    className={`font-bold px-1.5 py-0.5 rounded ${
-                      status === 'IZIN'
-                        ? 'bg-sky-100 text-[#006194]'
-                        : 'bg-purple-100 text-purple-700'
-                    }`}
-                  >
-                    {statusLabel}
-                  </span>
-                  .
+                  {t.leaveModal.confirmModalDesc.replace('{status}', statusLabel)}
                 </p>
 
                 <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 text-xs font-semibold leading-relaxed">
-                  Perhatian: Perubahan ini akan membatalkan Absen Pagi hari ini.
+                  {t.leaveModal.confirmModalWarning}
                 </div>
 
                 {notes.trim().length > 0 && (
                   <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-3 text-xs text-slate-700">
                     <span className="font-semibold block text-slate-500 mb-0.5 uppercase tracking-wider text-[10px]">
-                      Keterangan Tambahan:
+                      {t.leaveModal.confirmModalNotes}
                     </span>
                     <p className="italic text-slate-800 break-words">{notes}</p>
                   </div>
@@ -473,7 +461,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                   disabled={isPending || isCompressing}
                   className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer disabled:opacity-60"
                 >
-                  Kembali
+                  {t.leaveModal.backBtn}
                 </button>
                 <button
                   type="button"
@@ -481,7 +469,7 @@ export default function IzinSakitModal({ mode = 'CREATE' }: IzinSakitModalProps)
                   disabled={isPending || isCompressing}
                   className="flex-1 min-h-[44px] px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs sm:text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 cursor-pointer disabled:opacity-60 shadow-xs flex items-center justify-center gap-1.5"
                 >
-                  <span>{isPending ? 'Mengubah...' : 'Ya, Ubah Status'}</span>
+                  <span>{isPending ? t.leaveModal.confirmSubmitting : t.leaveModal.confirmSubmitBtn}</span>
                 </button>
               </div>
             </div>

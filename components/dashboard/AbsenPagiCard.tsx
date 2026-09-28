@@ -5,6 +5,7 @@ import { absenPagiAction } from '@/app/actions/attendance';
 import { getCurrentBrowserLocation } from '@/lib/geolocation';
 import AttendanceConfirmModal from '@/components/dashboard/AttendanceConfirmModal';
 import type { LocationPayload } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/context';
 
 interface AbsenPagiCardProps {
   isCheckedIn: boolean;
@@ -27,6 +28,7 @@ export default function AbsenPagiCard({
   liveLocation,
   liveError,
 }: AbsenPagiCardProps) {
+  const { t, locale } = useI18n();
   const [isPending, startTransition] = useTransition();
   const [isGeoLoading, setIsGeoLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -94,6 +96,8 @@ export default function AbsenPagiCard({
       const errorMessage =
         err instanceof Error
           ? err.message
+          : locale === 'en'
+          ? 'Failed to retrieve GPS location. Please ensure location permissions are enabled.'
           : 'Gagal mengambil lokasi GPS. Pastikan izin lokasi aktif.';
       setFeedback({ type: 'error', message: errorMessage });
     }
@@ -106,18 +110,18 @@ export default function AbsenPagiCard({
       <div className="space-y-1 mb-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base sm:text-lg font-bold text-slate-900">
-            Absen Pagi
+            {t.dashboard.checkInTitle}
           </h3>
           {isCheckedIn && (
             <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-              Tercatat
+              {t.dashboard.checkInRecordedBadge}
             </span>
           )}
         </div>
         <p className="text-xs sm:text-sm text-slate-500">
           {isFriday
-            ? 'Presensi masuk jam operasional harian (WFH / Bebas Lokasi).'
-            : 'Presensi masuk jam operasional harian berbasis GPS.'}
+            ? t.dashboard.checkInSubtitleWfh
+            : t.dashboard.checkInSubtitleOffice}
         </p>
       </div>
 
@@ -143,17 +147,17 @@ export default function AbsenPagiCard({
             </div>
             <div>
               <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-                Jam Masuk
+                {t.dashboard.checkInTimeLabel}
               </span>
               <span className="text-sm font-bold font-mono text-slate-900">
-                {checkInTimeFormatted ? `${checkInTimeFormatted}` : 'Tercatat'}
+                {checkInTimeFormatted ? `${checkInTimeFormatted}` : t.dashboard.checkInRecordedBadge}
               </span>
             </div>
           </div>
         </div>
       ) : isLeave ? (
         <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-3.5 text-xs text-slate-500 italic text-center">
-          Status hari ini Izin / Sakit.
+          {t.dashboard.leaveStatusNotice}
         </div>
       ) : (
         <>
@@ -164,9 +168,9 @@ export default function AbsenPagiCard({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
               </svg>
               <div className="space-y-0.5">
-                <span className="font-bold block text-amber-950">Perhatian:</span>
+                <span className="font-bold block text-amber-950">{t.dashboard.officeRadiusNoticeTitle}:</span>
                 <span className="text-amber-800 leading-relaxed block">
-                  Absen pagi hanya dapat dilakukan dalam radius 100 meter dari Gedung Mina Bahari 3. Pastikan Anda berada di area kantor dan izin lokasi/GPS pada browser telah aktif.
+                  {t.dashboard.officeRadiusNoticeDesc}
                 </span>
               </div>
             </div>
@@ -184,14 +188,14 @@ export default function AbsenPagiCard({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                <span>Memproses...</span>
+                <span>{t.dashboard.checkInProcessing}</span>
               </>
             ) : (
               <>
                 <svg className="w-5 h-5 text-white shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
                 </svg>
-                <span>Absen Pagi</span>
+                <span>{t.dashboard.checkInButton}</span>
               </>
             )}
           </button>
@@ -202,7 +206,7 @@ export default function AbsenPagiCard({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
               </svg>
               <span>
-                Waktu absensi hari ini telah berakhir. Absen Pagi tidak dapat dilakukan setelah pukul 23:58 WIB.
+                {t.dashboard.windowClosedAlert}
               </span>
             </div>
           )}

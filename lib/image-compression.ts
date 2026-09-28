@@ -95,7 +95,7 @@ export async function compressImageProof(file: File): Promise<File> {
 
   try {
     // Initial maximum dimension: 2048px (high clarity for documents/text)
-    let maxDimension = 2048;
+    const maxDimension = 2048;
     const isPngOriginal = file.type === 'image/png' || file.name.toLowerCase().endsWith('.png');
 
     // Multi-pass compression loop

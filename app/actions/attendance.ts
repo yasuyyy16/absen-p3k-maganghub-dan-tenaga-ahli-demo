@@ -17,7 +17,9 @@ import { formatSuratTugasPeriod } from '@/lib/attendance/history';
 import { LocationPayload, PersonnelType } from '@/lib/types';
 import { isValidCoordinates, reverseGeocode, isWithinAttendanceRadius } from '@/lib/location';
 import { uploadAttendanceProof } from '@/lib/storage';
-import { MAX_PROOF_FILE_SIZE, validateProofFile } from '@/lib/constants/attendance';
+import { validateProofFile } from '@/lib/constants/attendance';
+import { getServerLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n';
 
 export interface AttendanceActionResult {
   success: boolean;
@@ -215,9 +217,12 @@ export async function absenPagiAction(
 
       safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
+      const locale = await getServerLocale();
+      const t = getDictionary(locale);
+
       return {
         success: true,
-        message: 'Absen pagi berhasil dicatat bos.',
+        message: t.actions.absenPagiSuccess,
         checkInFormatted: formatWibTime(updatedRecord.check_in ?? now),
       };
     }
@@ -255,9 +260,12 @@ export async function absenPagiAction(
 
     safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
+    const locale = await getServerLocale();
+    const t = getDictionary(locale);
+
     return {
       success: true,
-      message: 'Absen pagi berhasil dicatat bos.',
+      message: t.actions.absenPagiSuccess,
       checkInFormatted: formatWibTime(newRecord.check_in ?? now),
     };
   } catch (error) {
@@ -316,7 +324,6 @@ export async function absenPulangAction(
   const now = getNowWib();
   const today = getWibDateParts(now);
   const dayOfWeek = getWibDayOfWeek(now);
-  const isFriday = dayOfWeek === 5;
 
   // Reject attendance on Saturday (6) and Sunday (0)
   if (dayOfWeek === 6 || dayOfWeek === 0) {
@@ -409,9 +416,12 @@ export async function absenPulangAction(
 
     safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
+    const locale = await getServerLocale();
+    const t = getDictionary(locale);
+
     return {
       success: true,
-      message: 'Absen pulang berhasil dicatat yeakh.',
+      message: t.actions.absenPulangSuccess,
       checkOutFormatted: formatWibTime(updated.check_out ?? now),
     };
   } catch (error) {
@@ -568,9 +578,12 @@ export async function submitIzinSakitAction(
 
       safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
+      const locale = await getServerLocale();
+      const t = getDictionary(locale);
+
       return {
         success: true,
-        message: `Pengajuan ${rawStatus === 'IZIN' ? 'Izin' : 'Sakit'} berhasil dicatat.`,
+        message: rawStatus === 'IZIN' ? t.actions.izinSuccess : t.actions.sakitSuccess,
       };
     }
 
@@ -601,9 +614,12 @@ export async function submitIzinSakitAction(
 
     safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
+    const locale = await getServerLocale();
+    const t = getDictionary(locale);
+
     return {
       success: true,
-      message: `Pengajuan ${rawStatus === 'IZIN' ? 'Izin' : 'Sakit'} berhasil dicatat.`,
+      message: rawStatus === 'IZIN' ? t.actions.izinSuccess : t.actions.sakitSuccess,
     };
   } catch (error) {
     if (
@@ -765,9 +781,12 @@ export async function ubahKeIzinSakitAction(
 
     safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
+    const locale = await getServerLocale();
+    const t = getDictionary(locale);
+
     return {
       success: true,
-      message: `Status kehadiran hari ini berhasil diubah menjadi ${rawStatus === 'IZIN' ? 'Izin' : 'Sakit'}.`,
+      message: rawStatus === 'IZIN' ? t.actions.ubahIzinSuccess : t.actions.ubahSakitSuccess,
     };
   } catch (error) {
     console.error('Error converting status to izin/sakit:', error);
@@ -892,9 +911,12 @@ export async function catatRapatAction(
             `Status presensi diubah menjadi RAPAT. Keterangan: ${keterangan}`
           );
 
+          const locale = await getServerLocale();
+          const t = getDictionary(locale);
+
           return {
             success: true,
-            message: 'Presensi Rapat berhasil dicatat.',
+            message: t.actions.rapatSuccess,
           };
         }
 
@@ -925,7 +947,7 @@ export async function catatRapatAction(
         };
       }
 
-      const newRecord = await tx.attendances.create({
+      await tx.attendances.create({
         data: {
           person_type: personType,
           person_id: user.id,
@@ -944,9 +966,12 @@ export async function catatRapatAction(
         `Status presensi diubah menjadi RAPAT. Keterangan: ${keterangan}`
       );
 
+      const locale = await getServerLocale();
+      const t = getDictionary(locale);
+
       return {
         success: true,
-        message: 'Presensi Rapat berhasil dicatat.',
+        message: t.actions.rapatSuccess,
       };
     });
 
@@ -1155,9 +1180,12 @@ export async function suratTugasAction(
         }
       });
 
+      const locale = await getServerLocale();
+      const t = getDictionary(locale);
+
       return {
         success: true,
-        message: 'Surat Tugas berhasil dicatat.',
+        message: t.actions.suratTugasSuccess,
       };
     });
 
@@ -1246,9 +1274,12 @@ export async function deleteSuratTugasAction(
 
     safeRevalidatePaths('/absensi', '/absensi/riwayat');
 
+    const locale = await getServerLocale();
+    const t = getDictionary(locale);
+
     return {
       success: true,
-      message: 'Surat Tugas berhasil dihapus.',
+      message: t.actions.deleteSuratTugasSuccess,
     };
   } catch (error) {
     console.error('Error deleting surat tugas:', error);

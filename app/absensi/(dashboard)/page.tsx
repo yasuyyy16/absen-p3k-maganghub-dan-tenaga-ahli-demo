@@ -6,23 +6,21 @@ import {
   getNowWib,
   getWibDateParts,
   getWibTimeParts,
-  formatWibDateLong,
   formatWibTime,
   isReminderActive,
   getWibDayOfWeek,
   isWibAttendanceWindowClosed,
   isDevTimeOverrideActive,
 } from '@/lib/time';
+import { getDictionary, formatI18nDateLong } from '@/lib/i18n';
+import { getServerLocale } from '@/lib/i18n/server';
 import { PersonDetails, PersonnelType } from '@/lib/types';
 import UserProfileCard from '@/components/dashboard/UserProfileCard';
 import LiveClockCard from '@/components/dashboard/LiveClockCard';
-import AbsenPagiCard from '@/components/dashboard/AbsenPagiCard';
-import AbsenPulangCard from '@/components/dashboard/AbsenPulangCard';
 import ReminderAlert from '@/components/dashboard/ReminderAlert';
 import PostCheckoutCard from '@/components/dashboard/PostCheckoutCard';
 import LeaveStatusCard from '@/components/dashboard/LeaveStatusCard';
 import IzinSakitModal from '@/components/dashboard/IzinSakitModal';
-import AttendanceLocationCard from '@/components/dashboard/AttendanceLocationCard';
 import FridayWfhBanner from '@/components/dashboard/FridayWfhBanner';
 import WeekendHolidayBanner from '@/components/dashboard/WeekendHolidayBanner';
 import DashboardActionsContainer from '@/components/dashboard/DashboardActionsContainer';
@@ -40,6 +38,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   if (!session || session.role !== 'VIEWER') {
     redirect('/absensi/login');
   }
+
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
 
   // Fetch current user details from shared `users` table
   const user = await prisma.users.findUnique({
@@ -79,7 +80,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const now = getNowWib();
   const todayParts = getWibDateParts(now);
   const timeParts = getWibTimeParts(now);
-  const dateFormattedLong = formatWibDateLong(now);
+  const dateFormattedLong = formatI18nDateLong(now, locale);
   const dayOfWeek = getWibDayOfWeek(now);
   const isFriday = dayOfWeek === 5;
   const isWeekend = dayOfWeek === 6 || dayOfWeek === 0;
@@ -183,19 +184,19 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     rapatEntryMode = 'FROM_HADIR';
   } else if (todayAttendance.status === 'IZIN' || todayAttendance.status === 'SAKIT') {
     canSelectRapat = false;
-    rapatBlockedReason = `Aktivitas Khusus (Rapat) tidak dapat dipilih karena status kehadiran hari ini sudah tercatat sebagai ${todayAttendance.status === 'IZIN' ? 'Izin' : 'Sakit'}.`;
+    rapatBlockedReason = locale === 'en'
+      ? `Special Activity (Meeting) cannot be selected because today's attendance is already recorded as ${todayAttendance.status === 'IZIN' ? 'Leave' : 'Sick Leave'}.`
+      : `Aktivitas Khusus (Rapat) tidak dapat dipilih karena status kehadiran hari ini sudah tercatat sebagai ${todayAttendance.status === 'IZIN' ? 'Izin' : 'Sakit'}.`;
   } else if (todayAttendance.status === 'ALFA') {
     canSelectRapat = false;
-    rapatBlockedReason = 'Aktivitas Khusus (Rapat) tidak dapat dipilih karena status kehadiran hari ini sudah tercatat sebagai Alfa.';
+    rapatBlockedReason = locale === 'en'
+      ? "Special Activity (Meeting) cannot be selected because today's attendance is already recorded as Absent."
+      : 'Aktivitas Khusus (Rapat) tidak dapat dipilih karena status kehadiran hari ini sudah tercatat sebagai Alfa.';
   } else {
-    canSelectRapat = false;
-    rapatBlockedReason = 'Aktivitas Khusus tidak tersedia karena presensi hari ini sudah tercatat.';
+    rapatBlockedReason = locale === 'en'
+      ? "Special Activity is not available because today's attendance has already been recorded."
+      : 'Aktivitas Khusus tidak tersedia karena presensi hari ini sudah tercatat.';
   }
-
-  const hasLocationData =
-    todayAttendance &&
-    (typeof todayAttendance.latitude === 'number' ||
-      typeof todayAttendance.latitude_out === 'number');
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -223,10 +224,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </div>
           <div className="space-y-0.5 flex-1 min-w-0">
             <p className="text-sm sm:text-base font-bold text-emerald-950">
-              Surat Tugas berhasil dicatat.
+              {t.dashboard.suratTugasSuccessTitle}
             </p>
             <p className="text-xs text-emerald-800 font-medium">
-              Riwayat dan absensi Anda untuk tanggal tersebut telah disesuaikan.
+              {t.dashboard.suratTugasSuccessDesc}
             </p>
           </div>
         </div>
@@ -249,10 +250,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </div>
             <div className="space-y-0.5 flex-1 min-w-0">
               <p className="text-sm sm:text-base font-bold text-amber-950">
-                passwordnya perbarui dulu lah cik
+                {t.dashboard.passwordBannerTitle}
               </p>
               <p className="text-xs text-amber-800 font-medium">
-                Demi keamanan akun Anda, silakan ubah kata sandi awal akun Anda.
+                {t.dashboard.passwordBannerDesc}
               </p>
             </div>
           </div>
@@ -260,7 +261,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             href="/absensi/profil#ubah-password"
             className="shrink-0 min-h-[44px] px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
           >
-            <span>Ubah Password</span>
+            <span>{t.dashboard.changePasswordBtn}</span>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
@@ -356,10 +357,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </div>
             <div className="flex flex-col text-left">
               <span className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-[#006194] transition-colors">
-                Lihat Riwayat Absensi
+                {t.dashboard.viewHistoryCardTitle}
               </span>
               <span className="text-xs text-slate-500">
-                Cek riwayat dan status kehadiran sebelumnya
+                {t.dashboard.viewHistoryCardDesc}
               </span>
             </div>
           </div>

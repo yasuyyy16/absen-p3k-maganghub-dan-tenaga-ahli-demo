@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { prisma } from '../lib/prisma';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { signSessionToken, verifySessionToken } from '../lib/auth';
-import { isProfileComplete, SessionPayload } from '../lib/types';
+import { isProfileComplete } from '../lib/types';
 import { absenPagiAction, absenPulangAction, submitIzinSakitAction, catatRapatAction } from '../app/actions/attendance';
 import { updatePersonnelInfoAction, updatePasswordAction } from '../app/actions/profile';
 import { loginAction } from '../app/actions/auth';
@@ -32,9 +32,6 @@ async function runTests() {
   const initialPassword = 'p3k123!';
   const initialPasswordHash = await hashPassword(initialPassword);
 
-  let incompleteUserId = 0;
-  let completeUserId = 0;
-
   try {
     // -------------------------------------------------------------------------
     // TEST 1: New account has mustChangePassword = true
@@ -54,7 +51,6 @@ async function runTests() {
         universitas: null,
       },
     });
-    incompleteUserId = newUser.id;
 
     assert.strictEqual(
       newUser.must_change_password,
@@ -453,7 +449,7 @@ async function runTests() {
       userId: syntheticAdmin.id,
       username: syntheticAdmin.username,
       nama: syntheticAdmin.nama,
-      role: 'ADMIN' as any,
+      role: 'ADMIN',
       isProfileComplete: true,
     });
     const reqAdmin = new NextRequest('http://localhost:3000/absensi', {

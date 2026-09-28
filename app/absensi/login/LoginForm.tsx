@@ -2,12 +2,14 @@
 
 import { useActionState, useState } from 'react';
 import { loginAction, AuthActionState } from '@/app/actions/auth';
+import { useI18n } from '@/lib/i18n/context';
 
 const initialState: AuthActionState = {
   error: null,
 };
 
 export default function LoginForm() {
+  const { t } = useI18n();
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -43,7 +45,7 @@ export default function LoginForm() {
           htmlFor="username"
           className="block text-xs font-semibold uppercase tracking-wider text-slate-700"
         >
-          Username
+          {t.login.usernameLabel}
         </label>
         <div className="relative flex items-center">
           <span className="absolute left-3.5 text-slate-400 pointer-events-none" aria-hidden="true">
@@ -60,7 +62,7 @@ export default function LoginForm() {
             spellCheck={false}
             required
             disabled={isPending}
-            placeholder="NIP / ID P3K / Username"
+            placeholder={t.login.usernamePlaceholder}
             className="w-full h-11 pl-11 pr-4 rounded-xl border border-slate-300 bg-slate-50/60 text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 disabled:bg-slate-100 transition-all outline-none"
           />
         </div>
@@ -72,7 +74,7 @@ export default function LoginForm() {
           htmlFor="password"
           className="block text-xs font-semibold uppercase tracking-wider text-slate-700"
         >
-          Password
+          {t.login.passwordLabel}
         </label>
         <div className="relative flex items-center">
           <span className="absolute left-3.5 text-slate-400 pointer-events-none" aria-hidden="true">
@@ -87,7 +89,7 @@ export default function LoginForm() {
             autoComplete="current-password"
             required
             disabled={isPending}
-            placeholder="••••••••"
+            placeholder={t.login.passwordPlaceholder}
             className="w-full h-11 pl-11 pr-11 rounded-xl border border-slate-300 bg-slate-50/60 text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 disabled:opacity-60 disabled:bg-slate-100 transition-all outline-none"
           />
           <button
@@ -95,7 +97,7 @@ export default function LoginForm() {
             onClick={() => setShowPassword((prev) => !prev)}
             disabled={isPending}
             className="absolute right-3 p-1 rounded-lg text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] cursor-pointer"
-            aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+            aria-label={showPassword ? t.login.hidePassword : t.login.showPassword}
           >
             {showPassword ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
@@ -117,7 +119,7 @@ export default function LoginForm() {
         disabled={isPending}
         className="w-full min-h-[44px] h-11 mt-3 flex items-center justify-center gap-2 rounded-xl bg-[#006194] hover:bg-[#004e77] text-white font-semibold text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed shadow-xs active:scale-[0.99]"
       >
-        <span>{isPending ? 'Memproses...' : 'Masuk'}</span>
+        <span>{isPending ? t.login.submittingButton : t.login.submitButton}</span>
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
         </svg>

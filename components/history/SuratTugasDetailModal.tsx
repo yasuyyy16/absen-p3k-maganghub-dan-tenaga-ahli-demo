@@ -1,21 +1,13 @@
 'use client';
 
-import { formatDateOnlyLong } from '@/lib/time';
 import { formatSuratTugasPeriod } from '@/lib/attendance/history';
 import { AttendanceHistoryItem } from '@/lib/types';
-
-function formatDateTime(value: Date): string {
-  return new Intl.DateTimeFormat('id-ID', {
-    dateStyle: 'long',
-    timeStyle: 'short',
-    timeZone: 'Asia/Jakarta',
-  }).format(new Date(value));
-}
-
-function getDuration(start: Date, end: Date): string {
-  const days = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86400000) + 1;
-  return Number.isFinite(days) && days > 0 ? `${days} hari kalender` : '-';
-}
+import { useI18n } from '@/lib/i18n/context';
+import {
+  formatI18nDateOnlyLong,
+  formatI18nDateTime,
+  formatI18nDuration,
+} from '@/lib/i18n';
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -33,6 +25,8 @@ export default function SuratTugasDetailModal({
   record: AttendanceHistoryItem | null;
   onClose: () => void;
 }) {
+  const { t, locale } = useI18n();
+
   if (!record) return null;
 
   const suratTugas = record.surat_tugas;
@@ -51,15 +45,15 @@ export default function SuratTugasDetailModal({
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
           <div>
             <h2 id="history-surat-tugas-detail-title" className="text-lg font-bold text-slate-900">
-              Detail Surat Tugas
+              {t.history.modalDetailTitle}
             </h2>
-            <p className="mt-0.5 text-xs text-slate-500">Riwayat Absensi</p>
+            <p className="mt-0.5 text-xs text-slate-500">{t.history.modalDetailSubtitle}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194]"
-            aria-label="Tutup detail Surat Tugas"
+            aria-label={t.common.close}
           >
             ×
           </button>
@@ -68,28 +62,28 @@ export default function SuratTugasDetailModal({
         {suratTugas ? (
           <dl>
             <DetailRow
-              label="Periode"
+              label={t.history.detailPeriod}
               value={formatSuratTugasPeriod(suratTugas.mulai_tugas, suratTugas.selesai_tugas)}
             />
-            <DetailRow label="Status" value="Surat Tugas" />
-            <DetailRow label="Nomor Surat" value={suratTugas.nomor_surat_tugas} />
-            <DetailRow label="Tanggal Terbit" value={formatDateOnlyLong(suratTugas.tanggal_terbit)} />
-            <DetailRow label="Tanggal Mulai" value={formatDateOnlyLong(suratTugas.mulai_tugas)} />
-            <DetailRow label="Tanggal Selesai" value={formatDateOnlyLong(suratTugas.selesai_tugas)} />
+            <DetailRow label={t.history.detailStatus} value={t.status.assignmentLetter} />
+            <DetailRow label={t.history.detailNumber} value={suratTugas.nomor_surat_tugas} />
+            <DetailRow label={t.history.detailIssueDate} value={formatI18nDateOnlyLong(suratTugas.tanggal_terbit, locale)} />
+            <DetailRow label={t.history.detailStartDate} value={formatI18nDateOnlyLong(suratTugas.mulai_tugas, locale)} />
+            <DetailRow label={t.history.detailEndDate} value={formatI18nDateOnlyLong(suratTugas.selesai_tugas, locale)} />
             <DetailRow
-              label="Durasi"
-              value={getDuration(suratTugas.mulai_tugas, suratTugas.selesai_tugas)}
+              label={t.history.detailDuration}
+              value={formatI18nDuration(suratTugas.mulai_tugas, suratTugas.selesai_tugas, locale)}
             />
-            <DetailRow label="Lokasi" value={suratTugas.lokasi} />
+            <DetailRow label={t.history.detailLocation} value={suratTugas.lokasi} />
             <DetailRow
-              label="Dibuat Oleh"
+              label={t.history.detailCreatedBy}
               value={`${suratTugas.user.nama} (${suratTugas.user.username})`}
             />
-            <DetailRow label="Waktu Dibuat" value={formatDateTime(suratTugas.created_at)} />
+            <DetailRow label={t.history.detailCreatedAt} value={formatI18nDateTime(suratTugas.created_at, locale)} />
           </dl>
         ) : (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            Detail Surat Tugas tidak tersedia untuk record ini.
+            {t.history.detailUnavailable}
           </div>
         )}
 
@@ -98,7 +92,7 @@ export default function SuratTugasDetailModal({
           onClick={onClose}
           className="min-h-11 w-full rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006194]"
         >
-          Tutup
+          {t.history.closeModal}
         </button>
       </div>
     </div>

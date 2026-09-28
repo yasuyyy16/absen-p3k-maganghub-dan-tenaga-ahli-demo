@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/lib/i18n/context';
 
 interface MonthFilterProps {
   currentMonth: string;
@@ -8,6 +9,7 @@ interface MonthFilterProps {
 
 export default function MonthFilter({ currentMonth }: MonthFilterProps) {
   const router = useRouter();
+  const { t } = useI18n();
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newMonth = e.target.value;
@@ -24,7 +26,7 @@ export default function MonthFilter({ currentMonth }: MonthFilterProps) {
         value={currentMonth}
         onChange={handleMonthChange}
         className="w-full min-h-[44px] h-11 pl-4 pr-10 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/20 cursor-pointer shadow-xs transition-all outline-none"
-        aria-label="Pilih Bulan Kalender"
+        aria-label={t.history.monthFilterLabel}
       />
       <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true">
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
